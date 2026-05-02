@@ -9,43 +9,27 @@ class GlassCard extends StatelessWidget {
   final double? borderRadius;
   final VoidCallback? onTap;
 
-  const GlassCard({
-    super.key,
-    required this.child,
-    this.padding,
-    this.margin,
-    this.borderRadius,
-    this.onTap,
-  });
+  const GlassCard({super.key, required this.child, this.padding, this.margin, this.borderRadius, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: margin ?? const EdgeInsets.symmetric(vertical: 6),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(borderRadius ?? 12),
+        borderRadius: BorderRadius.circular(borderRadius ?? 18),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
               onTap: onTap,
-              borderRadius: BorderRadius.circular(borderRadius ?? 12),
+              borderRadius: BorderRadius.circular(borderRadius ?? 18),
               child: Container(
-                padding: padding ?? const EdgeInsets.all(18),
+                padding: padding ?? const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppTheme.bgCard.withValues(alpha: 0.96),
-                  borderRadius: BorderRadius.circular(borderRadius ?? 12),
-                  border: Border.all(
-                    color: AppTheme.textPrimary.withValues(alpha: 0.08),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+                  color: AppTheme.bgCard.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(borderRadius ?? 18),
+                  border: Border.all(color: AppTheme.primary.withValues(alpha: 0.15)),
                 ),
                 child: child,
               ),
