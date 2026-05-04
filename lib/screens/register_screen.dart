@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../providers/auth_provider.dart';
+import '../providers/booking_provider.dart';
 import '../widgets/gradient_button.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -37,8 +38,12 @@ class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProvid
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
     final success = await auth.register(name: _nameCtrl.text.trim(), email: _emailCtrl.text.trim(), password: _passCtrl.text, phone: _phoneCtrl.text.trim());
-    if (!mounted) return;
     if (success) {
+      final user = auth.user;
+      if (user != null) {
+        context.read<BookingProvider>().connectSocket(user.id);
+      }
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/create-profile');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(auth.error ?? 'Registration failed'), backgroundColor: AppTheme.error));

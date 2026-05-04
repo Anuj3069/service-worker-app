@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../providers/auth_provider.dart';
+import '../providers/booking_provider.dart';
 import '../widgets/gradient_button.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -36,8 +37,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
     final success = await auth.login(email: _emailController.text.trim(), password: _passwordController.text);
-    if (!mounted) return;
     if (success) {
+      final user = auth.user;
+      if (user != null) {
+        context.read<BookingProvider>().connectSocket(user.id);
+      }
+      if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/dashboard');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(auth.error ?? 'Login failed'), backgroundColor: AppTheme.error));
