@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +9,7 @@ import '../providers/profile_provider.dart';
 import '../models/booking.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/status_badge.dart';
+import '../widgets/connection_banner.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -17,6 +19,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 0;
+  Timer? _expiryCleanupTimer;
 
   @override
   void initState() {
@@ -25,6 +28,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context.read<BookingProvider>().fetchAllBookings();
       context.read<ProfileProvider>().fetchProfile();
     });
+
+    // Periodically clean up expired instant requests
+    _expiryCleanupTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (mounted) {
+        context.read<BookingProvider>().cleanupExpiredRequests();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _expiryCleanupTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -32,12 +48,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
-        child: IndexedStack(
-          index: _currentIndex,
+        child: Column(
           children: [
-            _buildDashboardTab(),
-            _buildJobsTab(),
-            _buildProfileTab(),
+            // Connection status banner (Redis socket state)
+            SafeArea(
+              bottom: false,
+              child: Consumer<BookingProvider>(
+                builder: (_, bp, __) => ConnectionBanner(
+                  isConnected: bp.isSocketConnected,
+                ),
+              ),
+            ),
+            Expanded(
+              child: IndexedStack(
+                index: _currentIndex,
+                children: [
+                  _buildDashboardTab(),
+                  _buildJobsTab(),
+                  _buildProfileTab(),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -46,10 +77,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (i) => setState(() => _currentIndex = i),
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded), label: 'Dashboard'),
-            BottomNavigationBarItem(icon: Icon(Icons.work_rounded), label: 'Jobs'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
+          items: [
+            const BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded), label: 'Dashboard'),
+            const BottomNavigationBarItem(icon: Icon(Icons.work_rounded), label: 'Jobs'),
+            const BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
           ],
         ),
       ),
@@ -58,6 +89,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildDashboardTab() {
     return SafeArea(
+      top: false,
       child: RefreshIndicator(
         onRefresh: () => context.read<BookingProvider>().fetchAllBookings(),
         color: AppTheme.primary,
@@ -68,7 +100,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               _buildHeader(),
               const SizedBox(height: 24),
-              _buildInstantAlert(),
+              _buildInstantAlerts(),
+              _buildScheduledNotifications(),
               _buildStatCards(),
               const SizedBox(height: 28),
               Padding(
@@ -86,8 +119,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildHeader() {
-    return Consumer<AuthProvider>(
-      builder: (_, auth, __) => Padding(
+    return Consumer2<AuthProvider, BookingProvider>(
+      builder: (_, auth, bp, __) => Padding(
         padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
         child: Row(
           children: [
@@ -103,11 +136,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Text(auth.user?.name ?? 'Worker', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
               ]),
             ),
+            // Live indicator (Redis socket connection)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: (bp.isSocketConnected ? AppTheme.success : AppTheme.error).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: (bp.isSocketConnected ? AppTheme.success : AppTheme.error).withValues(alpha: 0.4),
+                ),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Container(
+                  width: 8, height: 8,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: bp.isSocketConnected ? AppTheme.success : AppTheme.error,
+                    boxShadow: [
+                      BoxShadow(
+                        color: (bp.isSocketConnected ? AppTheme.success : AppTheme.error).withValues(alpha: 0.6),
+                        blurRadius: 6,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  bp.isSocketConnected ? 'Live' : 'Offline',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: bp.isSocketConnected ? AppTheme.success : AppTheme.error,
+                  ),
+                ),
+              ]),
+            ),
+            const SizedBox(width: 8),
             Consumer<ProfileProvider>(
               builder: (_, profile, __) {
                 final isOnline = profile.profile?.isAvailable ?? false;
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: (isOnline ? AppTheme.success : AppTheme.textMuted).withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
@@ -144,91 +213,166 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildInstantAlert() {
+  /// Builds the instant booking request alerts with countdown timer.
+  /// These come from Redis Pub/Sub → new-booking-request events.
+  Widget _buildInstantAlerts() {
     return Consumer<BookingProvider>(
       builder: (_, bp, __) {
         if (bp.instantRequests.isEmpty) return const SizedBox.shrink();
-        
-        final req = bp.instantRequests.first;
-        final serviceDetails = req['service'] is Map ? req['service'] : null;
-        final serviceName = serviceDetails != null ? serviceDetails['name'] : 'Instant Service Request';
-        final price = req['price'] ?? 0;
-        final bookingId = req['bookingId'];
+
+        return Column(
+          children: bp.instantRequests.map((req) {
+            final serviceDetails = req['service'] is Map ? req['service'] : null;
+            final serviceName = serviceDetails != null ? serviceDetails['name'] : 'Instant Service Request';
+            final price = req['price'] ?? 0;
+            final bookingId = req['bookingId']?.toString() ?? '';
+            final expiresAt = req['expiresAt'];
+
+            return Container(
+              margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppTheme.primary, Color(0xFFE85D26)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primary.withValues(alpha: 0.4),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.flash_on_rounded, color: Colors.white, size: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text('INSTANT REQUEST', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.8), letterSpacing: 1)),
+                                const SizedBox(width: 8),
+                                // Redis Pub/Sub badge
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.2),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text('LIVE', style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 1)),
+                                ),
+                              ],
+                            ),
+                            Text(serviceName, style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
+                          ],
+                        ),
+                      ),
+                      Text('₹${price is num ? price.toInt() : price}', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Countdown timer from Redis TTL
+                  if (expiresAt != null)
+                    _InstantCountdown(expiresAt: expiresAt),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => bp.rejectBooking(bookingId, isInstant: true),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Colors.white),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text('Decline'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => bp.acceptBooking(bookingId, isInstant: true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: AppTheme.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                          child: const Text('Accept Quick'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  /// Shows notifications for new scheduled bookings (from Redis Pub/Sub).
+  Widget _buildScheduledNotifications() {
+    return Consumer<BookingProvider>(
+      builder: (_, bp, __) {
+        final unread = bp.scheduledNotifications.where((n) => n['isRead'] != true).toList();
+        if (unread.isEmpty) return const SizedBox.shrink();
 
         return Container(
-          margin: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-          padding: const EdgeInsets.all(20),
+          margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppTheme.primary, Color(0xFFE85D26)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primary.withValues(alpha: 0.4),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
+            color: AppTheme.accepted.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.accepted.withValues(alpha: 0.3)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.flash_on_rounded, color: Colors.white, size: 24),
-                  ),
-                  const SizedBox(width: 12),
+                  Icon(Icons.notifications_active_rounded, color: AppTheme.accepted, size: 22),
+                  const SizedBox(width: 8),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('INSTANT REQUEST', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.8), letterSpacing: 1)),
-                        Text(serviceName, style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
-                      ],
+                    child: Text(
+                      '${unread.length} new scheduled booking${unread.length > 1 ? 's' : ''}',
+                      style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
                     ),
                   ),
-                  Text('₹${price.toInt()}', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white)),
+                  TextButton(
+                    onPressed: () => bp.clearScheduledNotifications(),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppTheme.accepted,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      minimumSize: const Size(0, 32),
+                    ),
+                    child: Text('Dismiss', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600)),
+                  ),
                 ],
               ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => bp.rejectBooking(bookingId, isInstant: true),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: const Text('Decline'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => bp.acceptBooking(bookingId, isInstant: true),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: AppTheme.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
-                      ),
-                      child: const Text('Accept Quick'),
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 4),
+              Text(
+                'New bookings have been assigned to you. Check your pending requests.',
+                style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondary),
               ),
             ],
           ),
@@ -362,6 +506,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildJobsTab() {
     return SafeArea(
+      top: false,
       child: Column(
         children: [
           Padding(
@@ -392,6 +537,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildProfileTab() {
     return SafeArea(
+      top: false,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Consumer2<AuthProvider, ProfileProvider>(
@@ -463,5 +609,87 @@ class _DashboardScreenState extends State<DashboardScreen> {
       Text(value, style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
       Text(label, style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted)),
     ]);
+  }
+}
+
+/// A countdown widget that shows remaining time until Redis TTL expiry.
+/// Updates every second to show a live countdown for instant booking requests.
+class _InstantCountdown extends StatefulWidget {
+  final dynamic expiresAt;
+
+  const _InstantCountdown({required this.expiresAt});
+
+  @override
+  State<_InstantCountdown> createState() => _InstantCountdownState();
+}
+
+class _InstantCountdownState extends State<_InstantCountdown> {
+  Timer? _timer;
+  int _secondsRemaining = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateRemaining();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (_secondsRemaining > 0) {
+        setState(() => _secondsRemaining--);
+      } else {
+        _timer?.cancel();
+      }
+    });
+  }
+
+  void _calculateRemaining() {
+    try {
+      final expiry = DateTime.parse(widget.expiresAt.toString());
+      final diff = expiry.difference(DateTime.now());
+      _secondsRemaining = diff.inSeconds > 0 ? diff.inSeconds : 0;
+    } catch (_) {
+      _secondsRemaining = 0;
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final min = _secondsRemaining ~/ 60;
+    final sec = _secondsRemaining % 60;
+    final formatted = '${min.toString().padLeft(2, '0')}:${sec.toString().padLeft(2, '0')}';
+    final isUrgent = _secondsRemaining < 60;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.timer_rounded,
+            color: isUrgent ? Colors.yellow : Colors.white.withValues(alpha: 0.9),
+            size: 18,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            _secondsRemaining > 0
+                ? 'Expires in $formatted'
+                : 'Expired',
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: isUrgent ? Colors.yellow : Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

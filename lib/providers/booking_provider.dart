@@ -16,8 +16,14 @@ class BookingProvider extends ChangeNotifier {
   // ── Instant Booking State ──────────────────────────
   List<Map<String, dynamic>> _instantRequests = [];
   
+  // ── Real-time notification state ───────────────────
+  bool _isSocketConnected = false;
+  List<Map<String, dynamic>> _scheduledNotifications = [];
+
   StreamSubscription? _newRequestSub;
   StreamSubscription? _bookingTakenSub;
+  StreamSubscription? _newScheduledSub;
+  StreamSubscription? _connectionSub;
 
   List<Booking> get bookings => _bookings;
   bool get isLoading => _isLoading;
@@ -25,9 +31,13 @@ class BookingProvider extends ChangeNotifier {
   String? get successMessage => _successMessage;
   
   List<Map<String, dynamic>> get instantRequests => _instantRequests;
+  bool get isSocketConnected => _isSocketConnected;
+  List<Map<String, dynamic>> get scheduledNotifications => _scheduledNotifications;
 
   List<Booking> get pendingBookings =>
       _bookings.where((b) => b.status == 'pending').toList();
+  List<Booking> get requestedBookings =>
+      _bookings.where((b) => b.status == 'requested').toList();
   List<Booking> get acceptedBookings =>
       _bookings.where((b) => b.status == 'accepted').toList();
   List<Booking> get completedBookings =>
@@ -36,6 +46,11 @@ class BookingProvider extends ChangeNotifier {
   int get pendingCount => pendingBookings.length;
   int get activeCount => acceptedBookings.length;
   int get completedCount => completedBookings.length;
+  int get instantRequestCount => _instantRequests.length;
+
+  /// Get unread scheduled notification count
+  int get unreadScheduledCount =>
+      _scheduledNotifications.where((n) => n['isRead'] != true).length;
 
   /// Initialize socket connection after login
   void connectSocket(String userId) {
@@ -47,35 +62,117 @@ class BookingProvider extends ChangeNotifier {
   void disconnectSocket() {
     _newRequestSub?.cancel();
     _bookingTakenSub?.cancel();
+    _newScheduledSub?.cancel();
+    _connectionSub?.cancel();
     _socketService.disconnect();
     _instantRequests.clear();
+    _isSocketConnected = false;
+    _scheduledNotifications.clear();
+    notifyListeners();
   }
 
   void _listenToSocketEvents() {
     _newRequestSub?.cancel();
     _bookingTakenSub?.cancel();
+    _newScheduledSub?.cancel();
+    _connectionSub?.cancel();
 
+    // ── Connection state tracking ──
+    _connectionSub = _socketService.onConnectionStateChanged.listen((connected) {
+      _isSocketConnected = connected;
+      notifyListeners();
+    });
+
+    // ── Instant booking request from customer (via Redis Pub/Sub) ──
     _newRequestSub = _socketService.onNewBookingRequest.listen((data) {
-      debugPrint('[Worker BookingProvider] new-booking-request: $data');
+      debugPrint('[Worker BookingProvider] 🚨 new-booking-request: $data');
       // Add new request to the list if not already present
-      final exists = _instantRequests.any((r) => r['bookingId'] == data['bookingId']);
+      final bookingId = data['bookingId']?.toString();
+      final exists = _instantRequests.any(
+        (r) => r['bookingId']?.toString() == bookingId,
+      );
       if (!exists) {
-        _instantRequests.add(data);
+        // Add expiry countdown data
+        final expiresAt = data['expiresAt'];
+        _instantRequests.add({
+          ...data,
+          'receivedAt': DateTime.now().toIso8601String(),
+          'expiresAt': expiresAt,
+        });
         notifyListeners();
       }
     });
 
+    // ── Another worker accepted the instant booking ──
     _bookingTakenSub = _socketService.onBookingTaken.listen((data) {
-      debugPrint('[Worker BookingProvider] booking-taken: $data');
-      // Remove from pending requests
-      _instantRequests.removeWhere((r) => r['bookingId'] == data['bookingId']);
+      debugPrint('[Worker BookingProvider] 🔒 booking-taken: $data');
+      // Remove from pending requests since another worker got it
+      final bookingId = data['bookingId']?.toString();
+      _instantRequests.removeWhere(
+        (r) => r['bookingId']?.toString() == bookingId,
+      );
+      notifyListeners();
+    });
+
+    // ── New scheduled booking assigned to this worker ──
+    _newScheduledSub = _socketService.onNewScheduledBooking.listen((data) {
+      debugPrint('[Worker BookingProvider] 📋 new-scheduled-booking: $data');
+
+      _scheduledNotifications.insert(0, {
+        'type': 'new_scheduled',
+        'title': 'New Booking Request',
+        'message': 'You have a new scheduled booking request',
+        'data': data,
+        'timestamp': DateTime.now().toIso8601String(),
+        'isRead': false,
+      });
+
+      // Keep only last 20 notifications
+      if (_scheduledNotifications.length > 20) {
+        _scheduledNotifications = _scheduledNotifications.sublist(0, 20);
+      }
+
+      // Auto-refresh booking list to show the new booking
+      fetchAllBookings();
       notifyListeners();
     });
   }
 
+  /// Mark a scheduled notification as read
+  void markScheduledNotificationRead(int index) {
+    if (index >= 0 && index < _scheduledNotifications.length) {
+      _scheduledNotifications[index]['isRead'] = true;
+      notifyListeners();
+    }
+  }
+
+  /// Clear all scheduled notifications
+  void clearScheduledNotifications() {
+    _scheduledNotifications.clear();
+    notifyListeners();
+  }
+
   /// Remove an instant request from the UI (without calling API)
   void dismissInstantRequest(String bookingId) {
-    _instantRequests.removeWhere((r) => r['bookingId'] == bookingId);
+    _instantRequests.removeWhere(
+      (r) => r['bookingId']?.toString() == bookingId,
+    );
+    notifyListeners();
+  }
+
+  /// Remove expired instant requests
+  void cleanupExpiredRequests() {
+    final now = DateTime.now();
+    _instantRequests.removeWhere((r) {
+      final expiresAt = r['expiresAt'];
+      if (expiresAt == null) return false;
+      try {
+        final expiryTime = DateTime.parse(expiresAt);
+        return now.isAfter(expiryTime);
+      } catch (_) {
+        return false;
+      }
+    });
     notifyListeners();
   }
 
@@ -182,6 +279,8 @@ class BookingProvider extends ChangeNotifier {
   void dispose() {
     _newRequestSub?.cancel();
     _bookingTakenSub?.cancel();
+    _newScheduledSub?.cancel();
+    _connectionSub?.cancel();
     _socketService.dispose();
     super.dispose();
   }
