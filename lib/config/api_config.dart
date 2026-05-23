@@ -1,6 +1,7 @@
 /// API Configuration — Base URL and endpoint constants
 class ApiConfig {
-  static const String baseUrl = 'http://10.0.2.2:3000/api/v1';
+  // Production backend URL (deployed on Render)
+  static const String baseUrl = 'https://service-app-rduc.onrender.com/api/v1';
 
   // Auth
   static const String login = '/auth/login';

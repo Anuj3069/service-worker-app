@@ -9,7 +9,7 @@ import 'package:socket_io_client/socket_io_client.dart' as io;
 ///   - booking-taken          → Another worker accepted the instant booking
 ///   - new-scheduled-booking  → A new scheduled booking assigned to this worker
 class SocketService {
-  static const String _serverUrl = 'http://10.0.2.2:3000';
+  static const String _serverUrl = 'https://service-app-rduc.onrender.com';
 
   io.Socket? _socket;
   bool _isConnected = false;
