@@ -128,6 +128,31 @@ class SocketService {
     _socket!.connect();
   }
 
+  // ── Emit methods for live tracking ──
+
+  /// Signal that the worker is en route to the customer
+  void emitTrackingStart(String bookingId) {
+    if (_socket == null || !_isConnected) {
+      debugPrint('[Socket] ⚠️ Cannot emit tracking-start: not connected');
+      return;
+    }
+    _socket!.emit('tracking-start', {'bookingId': bookingId});
+    debugPrint('[Socket] 📍 Emitted tracking-start for booking: $bookingId');
+  }
+
+  /// Send live GPS location update
+  void emitLocationUpdate(String bookingId, List<double> coordinates) {
+    if (_socket == null || !_isConnected) {
+      debugPrint('[Socket] ⚠️ Cannot emit location-update: not connected');
+      return;
+    }
+    _socket!.emit('location-update', {
+      'bookingId': bookingId,
+      'coordinates': coordinates,
+    });
+    debugPrint('[Socket] 🗺️ Emitted location-update: $coordinates');
+  }
+
   /// Helper to safely add data to a stream controller
   void _addToController(
     StreamController<Map<String, dynamic>> controller,

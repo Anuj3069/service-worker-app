@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/booking.dart';
 import '../services/booking_api_service.dart';
 import '../services/socket_service.dart';
@@ -47,6 +48,14 @@ class BookingProvider extends ChangeNotifier {
   int get activeCount => acceptedBookings.length;
   int get completedCount => completedBookings.length;
   int get instantRequestCount => _instantRequests.length;
+
+  // ── Live Tracking State ───────────────────────────────
+  bool _isEnRoute = false;
+  String? _activeTrackingBookingId;
+  Timer? _locationUpdateTimer;
+
+  bool get isEnRoute => _isEnRoute;
+  String? get activeTrackingBookingId => _activeTrackingBookingId;
 
   /// Get unread scheduled notification count
   int get unreadScheduledCount =>
@@ -136,6 +145,80 @@ class BookingProvider extends ChangeNotifier {
       fetchAllBookings();
       notifyListeners();
     });
+  }
+
+  // ── Live Tracking Methods ─────────────────────────────
+
+  /// Start live tracking for a booking: emit tracking-start,
+  /// then emit GPS location every 5 seconds.
+  Future<void> startTracking(String bookingId) async {
+    // Request location permission
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        _error = 'Location permission denied';
+        notifyListeners();
+        return;
+      }
+    }
+    if (permission == LocationPermission.deniedForever) {
+      _error = 'Location permission permanently denied. Please enable in settings.';
+      notifyListeners();
+      return;
+    }
+
+    // Check if location services are enabled
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      _error = 'Location services are disabled. Please enable GPS.';
+      notifyListeners();
+      return;
+    }
+
+    _isEnRoute = true;
+    _activeTrackingBookingId = bookingId;
+    notifyListeners();
+
+    // Emit tracking-start to notify customer
+    _socketService.emitTrackingStart(bookingId);
+
+    // Send initial location immediately
+    await _sendCurrentLocation(bookingId);
+
+    // Start periodic location updates every 5 seconds
+    _locationUpdateTimer?.cancel();
+    _locationUpdateTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => _sendCurrentLocation(bookingId),
+    );
+  }
+
+  /// Stop live tracking and cancel the GPS timer.
+  void stopTracking() {
+    _locationUpdateTimer?.cancel();
+    _locationUpdateTimer = null;
+    _isEnRoute = false;
+    _activeTrackingBookingId = null;
+    notifyListeners();
+  }
+
+  /// Read the current GPS position and emit it via socket.
+  Future<void> _sendCurrentLocation(String bookingId) async {
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 4),
+        ),
+      );
+      _socketService.emitLocationUpdate(
+        bookingId,
+        [position.longitude, position.latitude],
+      );
+    } catch (e) {
+      debugPrint('[Tracking] GPS read error: $e');
+    }
   }
 
   /// Mark a scheduled notification as read
@@ -281,6 +364,7 @@ class BookingProvider extends ChangeNotifier {
     _bookingTakenSub?.cancel();
     _newScheduledSub?.cancel();
     _connectionSub?.cancel();
+    _locationUpdateTimer?.cancel();
     _socketService.dispose();
     super.dispose();
   }

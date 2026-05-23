@@ -473,14 +473,84 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
           if (booking.status == 'accepted') ...[
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _handleAction(booking.id, 'complete'),
-                icon: const Icon(Icons.task_alt_rounded, size: 18),
-                label: const Text('Mark Complete'),
-                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              ),
+            Consumer<BookingProvider>(
+              builder: (_, bp, __) {
+                final isTrackingThis = bp.isEnRoute && bp.activeTrackingBookingId == booking.id;
+                return Column(
+                  children: [
+                    // Live tracking badge
+                    if (isTrackingThis)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: AppTheme.success.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppTheme.success.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 8, height: 8,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppTheme.success,
+                                boxShadow: [BoxShadow(color: AppTheme.success.withValues(alpha: 0.6), blurRadius: 6)],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Live Tracking Active',
+                              style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.success),
+                            ),
+                          ],
+                        ),
+                      ),
+                    // Tracking + Complete buttons row
+                    Row(children: [
+                      Expanded(
+                        child: isTrackingThis
+                            ? OutlinedButton.icon(
+                                onPressed: () => bp.stopTracking(),
+                                icon: const Icon(Icons.stop_rounded, size: 18),
+                                label: const Text('Stop'),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppTheme.warning,
+                                  side: const BorderSide(color: AppTheme.warning),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              )
+                            : ElevatedButton.icon(
+                                onPressed: bp.isEnRoute
+                                    ? null // Another booking is being tracked
+                                    : () => bp.startTracking(booking.id),
+                                icon: const Icon(Icons.navigation_rounded, size: 18),
+                                label: const Text('En Route'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.accepted,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            if (isTrackingThis) bp.stopTracking();
+                            _handleAction(booking.id, 'complete');
+                          },
+                          icon: const Icon(Icons.task_alt_rounded, size: 18),
+                          label: const Text('Complete'),
+                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                        ),
+                      ),
+                    ]),
+                  ],
+                );
+              },
             ),
           ],
         ],
