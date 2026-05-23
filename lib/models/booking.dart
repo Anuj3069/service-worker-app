@@ -13,6 +13,9 @@ class Booking {
   final String createdAt;
   final Map<String, dynamic>? serviceDetails;
   final Map<String, dynamic>? userDetails;
+  /// [longitude, latitude] — GeoJSON order from backend
+  final List<double>? customerCoordinates;
+  final String? customerAddress;
 
   Booking({
     required this.id,
@@ -29,9 +32,26 @@ class Booking {
     required this.createdAt,
     this.serviceDetails,
     this.userDetails,
+    this.customerCoordinates,
+    this.customerAddress,
   });
 
   factory Booking.fromJson(Map<String, dynamic> json) {
+    // Parse customerLocation: { coordinates: [lng, lat], address: "..." }
+    List<double>? coords;
+    String? address;
+    final loc = json['customerLocation'];
+    if (loc is Map) {
+      final rawCoords = loc['coordinates'];
+      if (rawCoords is List && rawCoords.length >= 2) {
+        coords = [
+          (rawCoords[0] as num).toDouble(),
+          (rawCoords[1] as num).toDouble(),
+        ];
+      }
+      address = loc['address']?.toString();
+    }
+
     return Booking(
       id: json['_id'] ?? json['id'] ?? '',
       userId: json['userId'] is Map ? json['userId']['_id'] ?? '' : json['userId'] ?? '',
@@ -47,10 +67,17 @@ class Booking {
       createdAt: json['createdAt'] ?? '',
       serviceDetails: json['serviceId'] is Map ? json['serviceId'] : null,
       userDetails: json['userId'] is Map ? json['userId'] : null,
+      customerCoordinates: coords,
+      customerAddress: address,
     );
   }
 
   String get serviceName => serviceDetails?['name'] ?? 'Service';
   String get customerName => userDetails?['name'] ?? 'Customer';
   String get customerEmail => userDetails?['email'] ?? '';
+
+  /// Returns customer latitude (GeoJSON stores [lng, lat])
+  double? get customerLatitude => customerCoordinates?[1];
+  /// Returns customer longitude
+  double? get customerLongitude => customerCoordinates?[0];
 }

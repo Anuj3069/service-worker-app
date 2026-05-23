@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 import '../config/theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/booking_provider.dart';
@@ -10,6 +11,7 @@ import '../models/booking.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/connection_banner.dart';
+import 'map_tracking_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -20,6 +22,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 0;
   Timer? _expiryCleanupTimer;
+  Timer? _locationTimer;
 
   @override
   void initState() {
@@ -27,6 +30,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<BookingProvider>().fetchAllBookings();
       context.read<ProfileProvider>().fetchProfile();
+      _startLiveLocationUpdates();
     });
 
     // Periodically clean up expired instant requests
@@ -37,9 +41,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
+  Future<void> _startLiveLocationUpdates() async {
+    // Try to update location immediately
+    await _updateWorkerLiveLocation();
+    
+    // Set up a periodic timer to update every 30 seconds
+    _locationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) {
+        _updateWorkerLiveLocation();
+      }
+    });
+  }
+
+  Future<void> _updateWorkerLiveLocation() async {
+    try {
+      // 1. Check/request permission
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return;
+      }
+      if (permission == LocationPermission.deniedForever) return;
+
+      // 2. Check if location services are enabled
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return;
+
+      // 3. Get current position
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 5),
+        ),
+      );
+
+      // 4. Update on server via ProfileProvider
+      if (mounted) {
+        await context.read<ProfileProvider>().updateLocation([
+          position.longitude,
+          position.latitude,
+        ]);
+        debugPrint('[Live Location] Updated worker location on server: [${position.longitude}, ${position.latitude}]');
+      }
+    } catch (e) {
+      debugPrint('[Live Location] Error updating worker location: $e');
+    }
+  }
+
   @override
   void dispose() {
     _expiryCleanupTimer?.cancel();
+    _locationTimer?.cancel();
     super.dispose();
   }
 
@@ -508,6 +560,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ],
                         ),
                       ),
+                    // Navigate button (opens in-app map)
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => MapTrackingScreen(booking: booking),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.map_rounded, size: 18),
+                        label: const Text('Navigate to Customer'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.accepted,
+                          side: const BorderSide(color: AppTheme.accepted),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
                     // Tracking + Complete buttons row
                     Row(children: [
                       Expanded(
@@ -559,12 +634,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _handleAction(String id, String action) async {
+    if (action == 'complete') {
+      _showOtpDialog(id);
+      return;
+    }
+
     final bp = context.read<BookingProvider>();
     bool success = false;
     switch (action) {
       case 'accept': success = await bp.acceptBooking(id); break;
       case 'reject': success = await bp.rejectBooking(id); break;
-      case 'complete': success = await bp.completeBooking(id); break;
     }
     if (!mounted) return;
     if (success) {
@@ -572,6 +651,222 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(bp.error ?? 'Action failed'), backgroundColor: AppTheme.error));
     }
+  }
+
+  void _showOtpDialog(String bookingId) {
+    final otpController = TextEditingController();
+    String? dialogError;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              child: Container(
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header icon
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.primaryGradient,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Icon(Icons.verified_user_rounded,
+                          color: Colors.white, size: 32),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Enter Completion OTP',
+                      style: GoogleFonts.outfit(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Ask the customer for the 4-digit code shown on their app',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: AppTheme.textMuted,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // OTP input
+                    TextField(
+                      controller: otpController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 4,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 12,
+                        color: AppTheme.textPrimary,
+                      ),
+                      decoration: InputDecoration(
+                        counterText: '',
+                        hintText: '● ● ● ●',
+                        hintStyle: GoogleFonts.inter(
+                          fontSize: 24,
+                          color: AppTheme.textMuted.withValues(alpha: 0.4),
+                          letterSpacing: 12,
+                        ),
+                        filled: true,
+                        fillColor: AppTheme.textMuted.withValues(alpha: 0.06),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide(
+                            color: AppTheme.primary.withValues(alpha: 0.5),
+                            width: 2,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 18),
+                      ),
+                    ),
+
+                    // Error display
+                    if (dialogError != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: AppTheme.error.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppTheme.error.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.error_outline_rounded,
+                                size: 16, color: AppTheme.error),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                dialogError!,
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  color: AppTheme.error,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 20),
+
+                    // Verify button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final otp = otpController.text.trim();
+                          if (otp.length != 4) {
+                            setDialogState(() {
+                              dialogError = 'Please enter the 4-digit OTP';
+                            });
+                            return;
+                          }
+                          setDialogState(() => dialogError = null);
+
+                          final bp = context.read<BookingProvider>();
+                          // Stop live tracking if active for this booking
+                          if (bp.isEnRoute && bp.activeTrackingBookingId == bookingId) {
+                            bp.stopTracking();
+                          }
+                          final nav = Navigator.of(ctx);
+                          final messenger = ScaffoldMessenger.of(context);
+                          final success = await bp.completeBooking(bookingId, otp);
+
+                          if (success) {
+                            nav.pop();
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(bp.successMessage ?? 'Job completed!'),
+                                backgroundColor: AppTheme.success,
+                              ),
+                            );
+                          } else {
+                            setDialogState(() {
+                              dialogError = bp.error
+                                      ?.replaceAll('Exception: ', '')
+                                      .replaceAll('Error: ', '') ??
+                                  'Invalid OTP. Please try again.';
+                            });
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.success,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'Verify & Complete Job',
+                          style: GoogleFonts.outfit(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text(
+                        'Cancel',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textMuted,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   Widget _buildJobsTab() {

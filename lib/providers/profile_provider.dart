@@ -75,4 +75,16 @@ class ProfileProvider extends ChangeNotifier {
       return false;
     }
   }
+
+  Future<bool> updateLocation(List<double> coordinates, {String? address}) async {
+    try {
+      _profile = await _providerApi.updateLocation(coordinates, address: address);
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
 }

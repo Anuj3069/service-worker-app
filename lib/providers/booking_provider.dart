@@ -335,12 +335,12 @@ class BookingProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> completeBooking(String id) async {
+  Future<bool> completeBooking(String id, String otp) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
     try {
-      await _bookingApi.completeBooking(id);
+      await _bookingApi.completeBooking(id, otp);
       _successMessage = 'Job completed! Great work!';
       await fetchAllBookings();
       return true;

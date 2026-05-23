@@ -35,4 +35,17 @@ class ProviderApiService {
     if (data['provider'] != null) return ProviderProfile.fromJson(data['provider']);
     return ProviderProfile.fromJson(data);
   }
+
+  Future<ProviderProfile> updateLocation(List<double> coordinates, {String? address}) async {
+    final body = <String, dynamic>{
+      'coordinates': coordinates,
+    };
+    if (address != null) {
+      body['address'] = address;
+    }
+    final response = await ApiClient.put('${ApiConfig.profile}/location', body);
+    final data = response['data'];
+    if (data['provider'] != null) return ProviderProfile.fromJson(data['provider']);
+    return ProviderProfile.fromJson(data);
+  }
 }

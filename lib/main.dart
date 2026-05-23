@@ -12,6 +12,8 @@ import 'screens/register_screen.dart';
 import 'screens/create_profile_screen.dart';
 import 'screens/dashboard_screen.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
@@ -38,6 +40,7 @@ class AirveatWorkerApp extends StatelessWidget {
         title: 'Airveat Worker',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.darkTheme,
+        navigatorKey: navigatorKey,
         initialRoute: '/',
         routes: {
           '/': (context) => const SplashScreen(),

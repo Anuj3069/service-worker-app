@@ -29,8 +29,10 @@ class BookingApiService {
     return Booking.fromJson(data);
   }
 
-  Future<Booking> completeBooking(String id) async {
-    final response = await ApiClient.put(ApiConfig.completeBooking(id), {});
+  Future<Booking> completeBooking(String id, String otp) async {
+    final response = await ApiClient.put(ApiConfig.completeBooking(id), {
+      'otp': otp,
+    });
     final data = response['data'];
     if (data['booking'] != null) return Booking.fromJson(data['booking']);
     return Booking.fromJson(data);
