@@ -34,6 +34,7 @@ class BookingProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get instantRequests => _instantRequests;
   bool get isSocketConnected => _isSocketConnected;
   List<Map<String, dynamic>> get scheduledNotifications => _scheduledNotifications;
+  SocketService get socketService => _socketService;
 
   List<Booking> get pendingBookings =>
       _bookings.where((b) => b.status == 'pending').toList();

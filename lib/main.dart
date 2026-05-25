@@ -11,6 +11,7 @@ import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/create_profile_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/chat_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -48,6 +49,7 @@ class AirveatWorkerApp extends StatelessWidget {
           '/register': (context) => const RegisterScreen(),
           '/create-profile': (context) => const CreateProfileScreen(),
           '/dashboard': (context) => const DashboardScreen(),
+          '/chat': (context) => const ChatScreen(),
         },
       ),
     );
