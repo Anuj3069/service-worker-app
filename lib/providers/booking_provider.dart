@@ -14,6 +14,9 @@ class BookingProvider extends ChangeNotifier {
   String? _error;
   String? _successMessage;
 
+  // Track active complete booking operations to prevent race conditions
+  final Set<String> _completingBookingIds = {};
+
   // ── Instant Booking State ──────────────────────────
   List<Map<String, dynamic>> _instantRequests = [];
   
@@ -337,6 +340,9 @@ class BookingProvider extends ChangeNotifier {
   }
 
   Future<bool> completeBooking(String id, String otp) async {
+    if (_completingBookingIds.contains(id)) return false;
+    _completingBookingIds.add(id);
+
     _isLoading = true;
     _error = null;
     notifyListeners();
@@ -344,10 +350,12 @@ class BookingProvider extends ChangeNotifier {
       await _bookingApi.completeBooking(id, otp);
       _successMessage = 'Job completed! Great work!';
       await fetchAllBookings();
+      _completingBookingIds.remove(id);
       return true;
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
+      _completingBookingIds.remove(id);
       notifyListeners();
       return false;
     }

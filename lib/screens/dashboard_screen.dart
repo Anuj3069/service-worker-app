@@ -677,6 +677,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _showOtpDialog(String bookingId) {
     final otpController = TextEditingController();
     String? dialogError;
+    bool isVerifying = false;
 
     showModalBottomSheet(
       context: context,
@@ -740,6 +741,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     // OTP input
                     TextField(
                       controller: otpController,
+                      enabled: !isVerifying,
                       keyboardType: TextInputType.number,
                       maxLength: 4,
                       textAlign: TextAlign.center,
@@ -815,68 +817,88 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       width: double.infinity,
                       height: 52,
                       child: ElevatedButton(
-                        onPressed: () async {
-                          final otp = otpController.text.trim();
-                          if (otp.length != 4) {
-                            setDialogState(() {
-                              dialogError = 'Please enter the 4-digit OTP';
-                            });
-                            return;
-                          }
-                          setDialogState(() => dialogError = null);
+                        onPressed: isVerifying
+                            ? null
+                            : () async {
+                                if (isVerifying) return;
+                                final otp = otpController.text.trim();
+                                if (otp.length != 4) {
+                                  setDialogState(() {
+                                    dialogError = 'Please enter the 4-digit OTP';
+                                  });
+                                  return;
+                                }
+                                setDialogState(() {
+                                  isVerifying = true;
+                                  dialogError = null;
+                                });
 
-                          final bp = context.read<BookingProvider>();
-                          // Stop live tracking if active for this booking
-                          if (bp.isEnRoute && bp.activeTrackingBookingId == bookingId) {
-                            bp.stopTracking();
-                          }
-                          final nav = Navigator.of(ctx);
-                          final messenger = ScaffoldMessenger.of(context);
-                          final success = await bp.completeBooking(bookingId, otp);
+                                final bp = context.read<BookingProvider>();
+                                // Stop live tracking if active for this booking
+                                if (bp.isEnRoute && bp.activeTrackingBookingId == bookingId) {
+                                  bp.stopTracking();
+                                }
+                                final nav = Navigator.of(ctx);
+                                final messenger = ScaffoldMessenger.of(context);
+                                final success = await bp.completeBooking(bookingId, otp);
 
-                          if (success) {
-                            nav.pop();
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text(bp.successMessage ?? 'Job completed!'),
-                                backgroundColor: AppTheme.success,
-                              ),
-                            );
-                          } else {
-                            setDialogState(() {
-                              dialogError = bp.error
-                                      ?.replaceAll('Exception: ', '')
-                                      .replaceAll('Error: ', '') ??
-                                  'Invalid OTP. Please try again.';
-                            });
-                          }
-                        },
+                                if (success) {
+                                  nav.pop();
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(bp.successMessage ?? 'Job completed!'),
+                                      backgroundColor: AppTheme.success,
+                                    ),
+                                  );
+                                } else {
+                                  setDialogState(() {
+                                    isVerifying = false;
+                                    dialogError = bp.error
+                                            ?.replaceAll('Exception: ', '')
+                                            .replaceAll('Error: ', '') ??
+                                        'Invalid OTP. Please try again.';
+                                  });
+                                }
+                              },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.success,
                           foregroundColor: Colors.white,
+                          disabledBackgroundColor: AppTheme.success.withValues(alpha: 0.5),
+                          disabledForegroundColor: Colors.white.withValues(alpha: 0.7),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
                           elevation: 0,
                         ),
-                        child: Text(
-                          'Verify & Complete Job',
-                          style: GoogleFonts.outfit(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                        child: isVerifying
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : Text(
+                                'Verify & Complete Job',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 12),
                     TextButton(
-                      onPressed: () => Navigator.pop(ctx),
+                      onPressed: isVerifying ? null : () => Navigator.pop(ctx),
                       child: Text(
                         'Cancel',
                         style: GoogleFonts.inter(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.textMuted,
+                          color: isVerifying
+                              ? AppTheme.textMuted.withValues(alpha: 0.5)
+                              : AppTheme.textMuted,
                         ),
                       ),
                     ),
