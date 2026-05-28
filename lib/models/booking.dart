@@ -11,6 +11,9 @@ class Booking {
   final String? completedAt;
   final String? rejectedAt;
   final String createdAt;
+  final String paymentStatus;
+  final String? paymentMethod;
+  final String? paidAt;
   final Map<String, dynamic>? serviceDetails;
   final Map<String, dynamic>? userDetails;
   /// [longitude, latitude] — GeoJSON order from backend
@@ -30,6 +33,9 @@ class Booking {
     this.completedAt,
     this.rejectedAt,
     required this.createdAt,
+    this.paymentStatus = 'unpaid',
+    this.paymentMethod,
+    this.paidAt,
     this.serviceDetails,
     this.userDetails,
     this.customerCoordinates,
@@ -65,6 +71,9 @@ class Booking {
       completedAt: json['completedAt'],
       rejectedAt: json['rejectedAt'],
       createdAt: json['createdAt'] ?? '',
+      paymentStatus: json['paymentStatus'] ?? 'unpaid',
+      paymentMethod: json['paymentMethod'],
+      paidAt: json['paidAt'],
       serviceDetails: json['serviceId'] is Map ? json['serviceId'] : null,
       userDetails: json['userId'] is Map ? json['userId'] : null,
       customerCoordinates: coords,

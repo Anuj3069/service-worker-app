@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../config/theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/booking_provider.dart';
@@ -493,6 +494,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(width: 16),
             Text('₹${booking.price.toInt()}', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.accent)),
           ]),
+          if (booking.status == 'completed') ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: (booking.paymentStatus == 'paid' ? AppTheme.success : AppTheme.warning).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: (booking.paymentStatus == 'paid' ? AppTheme.success : AppTheme.warning).withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    booking.paymentStatus == 'paid'
+                        ? Icons.check_circle_rounded
+                        : Icons.qr_code_rounded,
+                    size: 18,
+                    color: booking.paymentStatus == 'paid'
+                        ? AppTheme.success
+                        : AppTheme.warning,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      booking.paymentStatus == 'paid'
+                          ? 'Payment received${booking.paymentMethod == null ? '' : ' (${booking.paymentMethod})'}'
+                          : 'Payment pending',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: booking.paymentStatus == 'paid'
+                            ? AppTheme.success
+                            : AppTheme.warning,
+                      ),
+                    ),
+                  ),
+                  if (booking.paymentStatus != 'paid')
+                    TextButton(
+                      onPressed: () => _showPaymentQrDialog(booking),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppTheme.primary,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: const Size(0, 32),
+                      ),
+                      child: const Text('Show QR'),
+                    ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 6),
           Row(children: [
             Icon(Icons.calendar_today_rounded, size: 14, color: AppTheme.textMuted), const SizedBox(width: 6),
@@ -651,6 +703,106 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ],
       ),
+    );
+  }
+
+  void _showPaymentQrDialog(Booking booking) {
+    final qrData =
+        'airveat://payment?bookingId=${booking.id}&amount=${booking.price.toStringAsFixed(2)}';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 30,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Collect Payment',
+                style: GoogleFonts.outfit(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Ask the customer to scan this QR and complete payment',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppTheme.textMuted,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppTheme.textMuted.withValues(alpha: 0.18)),
+                ),
+                child: QrImageView(
+                  data: qrData,
+                  version: QrVersions.auto,
+                  size: 220,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                '₹${booking.price.toInt()}',
+                style: GoogleFonts.outfit(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: AppTheme.primary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Booking #${booking.id.substring(booking.id.length - 8).toUpperCase()}',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textMuted,
+                ),
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: () => Navigator.pop(ctx),
+                  icon: const Icon(Icons.done_rounded),
+                  label: const Text('Done'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -843,6 +995,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 final success = await bp.completeBooking(bookingId, otp);
 
                                 if (success) {
+                                  Booking? completedBooking;
+                                  for (final booking in bp.bookings) {
+                                    if (booking.id == bookingId) {
+                                      completedBooking = booking;
+                                      break;
+                                    }
+                                  }
                                   nav.pop();
                                   messenger.showSnackBar(
                                     SnackBar(
@@ -850,6 +1009,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       backgroundColor: AppTheme.success,
                                     ),
                                   );
+                                  final qrBooking = completedBooking;
+                                  if (qrBooking != null && mounted) {
+                                    Future.microtask(() => _showPaymentQrDialog(qrBooking));
+                                  }
                                 } else {
                                   setDialogState(() {
                                     isVerifying = false;

@@ -12,7 +12,8 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -23,29 +24,47 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOutQuart),
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
     );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+          CurvedAnimation(parent: _animController, curve: Curves.easeOutQuart),
+        );
     _animController.forward();
   }
 
   @override
-  void dispose() { _emailController.dispose(); _passwordController.dispose(); _animController.dispose(); super.dispose(); }
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _animController.dispose();
+    super.dispose();
+  }
 
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
-    final success = await auth.login(email: _emailController.text.trim(), password: _passwordController.text);
+    final bookingProvider = context.read<BookingProvider>();
+    final success = await auth.login(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
+    if (!mounted) return;
     if (success) {
       final user = auth.user;
       if (user != null) {
-        context.read<BookingProvider>().connectSocket(user.id);
+        bookingProvider.connectSocket(user.id);
       }
-      if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/dashboard');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(auth.error ?? 'Login failed'), backgroundColor: AppTheme.error));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.error ?? 'Login failed'),
+          backgroundColor: AppTheme.error,
+        ),
+      );
     }
   }
 
@@ -66,18 +85,42 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   children: [
                     const SizedBox(height: 60),
                     Container(
-                      width: 64, height: 64,
+                      width: 64,
+                      height: 64,
                       decoration: BoxDecoration(
                         gradient: AppTheme.primaryGradient,
                         borderRadius: BorderRadius.circular(18),
-                        boxShadow: [BoxShadow(color: AppTheme.primary.withValues(alpha: 0.4), blurRadius: 24)],
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primary.withValues(alpha: 0.4),
+                            blurRadius: 24,
+                          ),
+                        ],
                       ),
-                      child: const Icon(Icons.engineering_rounded, color: Colors.white, size: 32),
+                      child: const Icon(
+                        Icons.engineering_rounded,
+                        color: Colors.white,
+                        size: 32,
+                      ),
                     ),
                     const SizedBox(height: 32),
-                    Text('Worker\nLogin', style: GoogleFonts.outfit(fontSize: 40, fontWeight: FontWeight.w700, color: AppTheme.textPrimary, height: 1.1)),
+                    Text(
+                      'Worker\nLogin',
+                      style: GoogleFonts.outfit(
+                        fontSize: 40,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimary,
+                        height: 1.1,
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    Text('Sign in to manage your jobs', style: GoogleFonts.inter(fontSize: 16, color: AppTheme.textSecondary)),
+                    Text(
+                      'Sign in to manage your jobs',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
                     const SizedBox(height: 48),
                     Form(
                       key: _formKey,
@@ -87,8 +130,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
                             style: const TextStyle(color: AppTheme.textPrimary),
-                            decoration: const InputDecoration(hintText: 'Email address', prefixIcon: Icon(Icons.email_outlined, color: AppTheme.textMuted)),
-                            validator: (v) => (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
+                            decoration: const InputDecoration(
+                              hintText: 'Email address',
+                              prefixIcon: Icon(
+                                Icons.email_outlined,
+                                color: AppTheme.textMuted,
+                              ),
+                            ),
+                            validator: (v) => (v == null || !v.contains('@'))
+                                ? 'Enter a valid email'
+                                : null,
                           ),
                           const SizedBox(height: 18),
                           TextFormField(
@@ -97,17 +148,34 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             style: const TextStyle(color: AppTheme.textPrimary),
                             decoration: InputDecoration(
                               hintText: 'Password',
-                              prefixIcon: const Icon(Icons.lock_outline, color: AppTheme.textMuted),
+                              prefixIcon: const Icon(
+                                Icons.lock_outline,
+                                color: AppTheme.textMuted,
+                              ),
                               suffixIcon: IconButton(
-                                icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: AppTheme.textMuted),
-                                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  color: AppTheme.textMuted,
+                                ),
+                                onPressed: () => setState(
+                                  () => _obscurePassword = !_obscurePassword,
+                                ),
                               ),
                             ),
-                            validator: (v) => (v == null || v.isEmpty) ? 'Password is required' : null,
+                            validator: (v) => (v == null || v.isEmpty)
+                                ? 'Password is required'
+                                : null,
                           ),
                           const SizedBox(height: 36),
                           Consumer<AuthProvider>(
-                            builder: (_, auth, __) => GradientButton(text: 'Sign In', isLoading: auth.isLoading, onPressed: _handleLogin, icon: Icons.arrow_forward_rounded),
+                            builder: (_, auth, __) => GradientButton(
+                              text: 'Sign In',
+                              isLoading: auth.isLoading,
+                              onPressed: _handleLogin,
+                              icon: Icons.arrow_forward_rounded,
+                            ),
                           ),
                         ],
                       ),
@@ -116,10 +184,26 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text("Don't have an account? ", style: GoogleFonts.inter(color: AppTheme.textSecondary, fontSize: 14)),
+                        Text(
+                          "Don't have an account? ",
+                          style: GoogleFonts.inter(
+                            color: AppTheme.textSecondary,
+                            fontSize: 14,
+                          ),
+                        ),
                         GestureDetector(
-                          onTap: () => Navigator.pushReplacementNamed(context, '/register'),
-                          child: Text('Sign Up', style: GoogleFonts.inter(color: AppTheme.primary, fontSize: 14, fontWeight: FontWeight.w600)),
+                          onTap: () => Navigator.pushReplacementNamed(
+                            context,
+                            '/register',
+                          ),
+                          child: Text(
+                            'Sign Up',
+                            style: GoogleFonts.inter(
+                              color: AppTheme.primary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ],
                     ),

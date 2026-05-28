@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/material.dart';
 import '../config/api_config.dart';
 import '../main.dart';
 
@@ -10,7 +9,10 @@ class ApiClient {
   static const String _refreshKey = 'refresh_token';
   static const String _userKey = 'user_data';
 
-  static Future<void> saveTokens(String accessToken, String refreshToken) async {
+  static Future<void> saveTokens(
+    String accessToken,
+    String refreshToken,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tokenKey, accessToken);
     await prefs.setString(_refreshKey, refreshToken);
@@ -87,11 +89,14 @@ class ApiClient {
     return headers;
   }
 
-  static Future<Map<String, dynamic>> get(String endpoint, {bool auth = true}) async {
+  static Future<Map<String, dynamic>> get(
+    String endpoint, {
+    bool auth = true,
+  }) async {
     final url = Uri.parse('${ApiConfig.baseUrl}$endpoint');
     var headers = await _headers(auth: auth);
     var response = await http.get(url, headers: headers);
-    
+
     if (response.statusCode == 401 && auth) {
       final refreshed = await _attemptRefresh();
       if (refreshed) {
@@ -102,31 +107,55 @@ class ApiClient {
     return _handleResponse(response);
   }
 
-  static Future<Map<String, dynamic>> post(String endpoint, Map<String, dynamic> body, {bool auth = true}) async {
+  static Future<Map<String, dynamic>> post(
+    String endpoint,
+    Map<String, dynamic> body, {
+    bool auth = true,
+  }) async {
     final url = Uri.parse('${ApiConfig.baseUrl}$endpoint');
     var headers = await _headers(auth: auth);
-    var response = await http.post(url, headers: headers, body: jsonEncode(body));
-    
+    var response = await http.post(
+      url,
+      headers: headers,
+      body: jsonEncode(body),
+    );
+
     if (response.statusCode == 401 && auth) {
       final refreshed = await _attemptRefresh();
       if (refreshed) {
         headers = await _headers(auth: auth);
-        response = await http.post(url, headers: headers, body: jsonEncode(body));
+        response = await http.post(
+          url,
+          headers: headers,
+          body: jsonEncode(body),
+        );
       }
     }
     return _handleResponse(response);
   }
 
-  static Future<Map<String, dynamic>> put(String endpoint, Map<String, dynamic> body, {bool auth = true}) async {
+  static Future<Map<String, dynamic>> put(
+    String endpoint,
+    Map<String, dynamic> body, {
+    bool auth = true,
+  }) async {
     final url = Uri.parse('${ApiConfig.baseUrl}$endpoint');
     var headers = await _headers(auth: auth);
-    var response = await http.put(url, headers: headers, body: jsonEncode(body));
-    
+    var response = await http.put(
+      url,
+      headers: headers,
+      body: jsonEncode(body),
+    );
+
     if (response.statusCode == 401 && auth) {
       final refreshed = await _attemptRefresh();
       if (refreshed) {
         headers = await _headers(auth: auth);
-        response = await http.put(url, headers: headers, body: jsonEncode(body));
+        response = await http.put(
+          url,
+          headers: headers,
+          body: jsonEncode(body),
+        );
       }
     }
     return _handleResponse(response);
@@ -135,14 +164,17 @@ class ApiClient {
   static Map<String, dynamic> _handleResponse(http.Response response) {
     final body = jsonDecode(response.body);
     if (response.statusCode >= 200 && response.statusCode < 300) return body;
-    
+
     final message = body['message'] ?? body['error'] ?? 'Something went wrong';
-    
+
     if (response.statusCode == 401) {
       clearAll();
-      navigatorKey.currentState?.pushNamedAndRemoveUntil('/login', (route) => false);
+      navigatorKey.currentState?.pushNamedAndRemoveUntil(
+        '/login',
+        (route) => false,
+      );
     }
-    
+
     throw ApiException(message, response.statusCode);
   }
 }

@@ -29,6 +29,8 @@ class SocketService {
       StreamController<Map<String, dynamic>>.broadcast();
   final _chatMessageController =
       StreamController<Map<String, dynamic>>.broadcast();
+  final _bookingPaidController =
+      StreamController<Map<String, dynamic>>.broadcast();
   final _connectionStateController = StreamController<bool>.broadcast();
 
   // ── Public Streams ──
@@ -40,6 +42,8 @@ class SocketService {
       _newScheduledBookingController.stream;
   Stream<Map<String, dynamic>> get onChatMessage =>
       _chatMessageController.stream;
+  Stream<Map<String, dynamic>> get onBookingPaid =>
+      _bookingPaidController.stream;
   Stream<bool> get onConnectionStateChanged =>
       _connectionStateController.stream;
 
@@ -134,6 +138,11 @@ class SocketService {
       _addToController(_chatMessageController, data);
     });
 
+    _socket!.on('booking-paid', (data) {
+      debugPrint('[Socket] booking-paid: $data');
+      _addToController(_bookingPaidController, data);
+    });
+
     _socket!.connect();
   }
 
@@ -191,6 +200,7 @@ class SocketService {
     _bookingTakenController.close();
     _newScheduledBookingController.close();
     _chatMessageController.close();
+    _bookingPaidController.close();
     _connectionStateController.close();
   }
 }

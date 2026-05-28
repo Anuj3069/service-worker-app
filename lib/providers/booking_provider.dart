@@ -8,7 +8,7 @@ import '../services/socket_service.dart';
 class BookingProvider extends ChangeNotifier {
   final BookingApiService _bookingApi = BookingApiService();
   final SocketService _socketService = SocketService();
-  
+
   List<Booking> _bookings = [];
   bool _isLoading = false;
   String? _error;
@@ -18,8 +18,8 @@ class BookingProvider extends ChangeNotifier {
   final Set<String> _completingBookingIds = {};
 
   // ── Instant Booking State ──────────────────────────
-  List<Map<String, dynamic>> _instantRequests = [];
-  
+  final List<Map<String, dynamic>> _instantRequests = [];
+
   // ── Real-time notification state ───────────────────
   bool _isSocketConnected = false;
   List<Map<String, dynamic>> _scheduledNotifications = [];
@@ -27,16 +27,18 @@ class BookingProvider extends ChangeNotifier {
   StreamSubscription? _newRequestSub;
   StreamSubscription? _bookingTakenSub;
   StreamSubscription? _newScheduledSub;
+  StreamSubscription? _bookingPaidSub;
   StreamSubscription? _connectionSub;
 
   List<Booking> get bookings => _bookings;
   bool get isLoading => _isLoading;
   String? get error => _error;
   String? get successMessage => _successMessage;
-  
+
   List<Map<String, dynamic>> get instantRequests => _instantRequests;
   bool get isSocketConnected => _isSocketConnected;
-  List<Map<String, dynamic>> get scheduledNotifications => _scheduledNotifications;
+  List<Map<String, dynamic>> get scheduledNotifications =>
+      _scheduledNotifications;
   SocketService get socketService => _socketService;
 
   List<Booking> get pendingBookings =>
@@ -76,6 +78,7 @@ class BookingProvider extends ChangeNotifier {
     _newRequestSub?.cancel();
     _bookingTakenSub?.cancel();
     _newScheduledSub?.cancel();
+    _bookingPaidSub?.cancel();
     _connectionSub?.cancel();
     _socketService.disconnect();
     _instantRequests.clear();
@@ -88,10 +91,13 @@ class BookingProvider extends ChangeNotifier {
     _newRequestSub?.cancel();
     _bookingTakenSub?.cancel();
     _newScheduledSub?.cancel();
+    _bookingPaidSub?.cancel();
     _connectionSub?.cancel();
 
     // ── Connection state tracking ──
-    _connectionSub = _socketService.onConnectionStateChanged.listen((connected) {
+    _connectionSub = _socketService.onConnectionStateChanged.listen((
+      connected,
+    ) {
       _isSocketConnected = connected;
       notifyListeners();
     });
@@ -149,6 +155,49 @@ class BookingProvider extends ChangeNotifier {
       fetchAllBookings();
       notifyListeners();
     });
+
+    _bookingPaidSub = _socketService.onBookingPaid.listen((data) {
+      debugPrint('[Worker BookingProvider] booking-paid: $data');
+      final bookingId = data['bookingId']?.toString();
+      if (bookingId == null) return;
+
+      _bookings = _bookings.map((booking) {
+        if (booking.id != bookingId) return booking;
+        final json = {
+          '_id': booking.id,
+          'userId': booking.userId,
+          'providerId': booking.providerId,
+          'serviceId': booking.serviceDetails ?? booking.serviceId,
+          'date': booking.date,
+          'slot': booking.slot,
+          'status': booking.status,
+          'price': booking.price,
+          'acceptedAt': booking.acceptedAt,
+          'completedAt': booking.completedAt,
+          'rejectedAt': booking.rejectedAt,
+          'createdAt': booking.createdAt,
+          'customerLocation': {
+            'coordinates': booking.customerCoordinates,
+            'address': booking.customerAddress,
+          },
+          'paymentStatus': data['paymentStatus'] ?? 'paid',
+          'paymentMethod': data['paymentMethod'],
+        };
+        return Booking.fromJson(json);
+      }).toList();
+
+      _scheduledNotifications.insert(0, {
+        'type': 'booking_paid',
+        'title': 'Payment Received',
+        'message': 'Customer payment has been completed',
+        'data': data,
+        'timestamp': DateTime.now().toIso8601String(),
+        'isRead': false,
+      });
+
+      fetchAllBookings();
+      notifyListeners();
+    });
   }
 
   // ── Live Tracking Methods ─────────────────────────────
@@ -167,7 +216,8 @@ class BookingProvider extends ChangeNotifier {
       }
     }
     if (permission == LocationPermission.deniedForever) {
-      _error = 'Location permission permanently denied. Please enable in settings.';
+      _error =
+          'Location permission permanently denied. Please enable in settings.';
       notifyListeners();
       return;
     }
@@ -216,10 +266,10 @@ class BookingProvider extends ChangeNotifier {
           timeLimit: Duration(seconds: 4),
         ),
       );
-      _socketService.emitLocationUpdate(
-        bookingId,
-        [position.longitude, position.latitude],
-      );
+      _socketService.emitLocationUpdate(bookingId, [
+        position.longitude,
+        position.latitude,
+      ]);
     } catch (e) {
       debugPrint('[Tracking] GPS read error: $e');
     }
@@ -372,6 +422,7 @@ class BookingProvider extends ChangeNotifier {
     _newRequestSub?.cancel();
     _bookingTakenSub?.cancel();
     _newScheduledSub?.cancel();
+    _bookingPaidSub?.cancel();
     _connectionSub?.cancel();
     _locationUpdateTimer?.cancel();
     _socketService.dispose();
