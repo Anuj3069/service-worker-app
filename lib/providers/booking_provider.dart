@@ -22,6 +22,7 @@ class BookingProvider extends ChangeNotifier {
 
   // ── Real-time notification state ───────────────────
   bool _isSocketConnected = false;
+  bool _refreshOnReconnect = false;
   List<Map<String, dynamic>> _scheduledNotifications = [];
 
   StreamSubscription? _newRequestSub;
@@ -98,7 +99,15 @@ class BookingProvider extends ChangeNotifier {
     _connectionSub = _socketService.onConnectionStateChanged.listen((
       connected,
     ) {
+      if (connected && _refreshOnReconnect) {
+        _refreshOnReconnect = false;
+        fetchAllBookings();
+      }
+
       _isSocketConnected = connected;
+      if (!connected) {
+        _refreshOnReconnect = true;
+      }
       notifyListeners();
     });
 
@@ -136,6 +145,14 @@ class BookingProvider extends ChangeNotifier {
     // ── New scheduled booking assigned to this worker ──
     _newScheduledSub = _socketService.onNewScheduledBooking.listen((data) {
       debugPrint('[Worker BookingProvider] 📋 new-scheduled-booking: $data');
+      final bookingId = data['bookingId']?.toString();
+      if (bookingId == null) return;
+
+      final alreadySeen = _scheduledNotifications.any(
+        (notification) =>
+            notification['data']?['bookingId']?.toString() == bookingId,
+      );
+      if (alreadySeen) return;
 
       _scheduledNotifications.insert(0, {
         'type': 'new_scheduled',
@@ -205,6 +222,12 @@ class BookingProvider extends ChangeNotifier {
   /// Start live tracking for a booking: emit tracking-start,
   /// then emit GPS location every 5 seconds.
   Future<void> startTracking(String bookingId) async {
+    if (!_socketService.isConnected) {
+      _error = 'Cannot start tracking while offline. Please reconnect first.';
+      notifyListeners();
+      return;
+    }
+
     // Request location permission
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
@@ -259,6 +282,13 @@ class BookingProvider extends ChangeNotifier {
 
   /// Read the current GPS position and emit it via socket.
   Future<void> _sendCurrentLocation(String bookingId) async {
+    if (!_socketService.isConnected) {
+      _error = 'Connection lost. Stopping live tracking.';
+      stopTracking();
+      notifyListeners();
+      return;
+    }
+
     try {
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
@@ -354,6 +384,8 @@ class BookingProvider extends ChangeNotifier {
         dismissInstantRequest(id);
       }
       await fetchAllBookings();
+      _isLoading = false;
+      notifyListeners();
       return true;
     } catch (e) {
       _error = e.toString();
@@ -379,6 +411,8 @@ class BookingProvider extends ChangeNotifier {
         await _bookingApi.rejectBooking(id);
         _successMessage = 'Booking rejected';
         await fetchAllBookings();
+        _isLoading = false;
+        notifyListeners();
         return true;
       }
     } catch (e) {
@@ -401,6 +435,8 @@ class BookingProvider extends ChangeNotifier {
       _successMessage = 'Job completed! Great work!';
       await fetchAllBookings();
       _completingBookingIds.remove(id);
+      _isLoading = false;
+      notifyListeners();
       return true;
     } catch (e) {
       _error = e.toString();

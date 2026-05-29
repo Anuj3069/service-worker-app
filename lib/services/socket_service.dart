@@ -71,24 +71,30 @@ class SocketService {
 
     // ── Connection lifecycle ──
     _socket!.onConnect((_) {
-      debugPrint('[Socket] ✅ Connected: ${_socket!.id}');
+      if (kDebugMode) debugPrint('[Socket] ✅ Connected: ${_socket!.id}');
       _isConnected = true;
       _reconnectAttempts = 0;
       _connectionStateController.add(true);
 
       // CRITICAL: Register user → backend stores in Redis HASH
       _socket!.emit('register', {'userId': userId});
-      debugPrint('[Socket] 📡 Registered userId: $userId (Redis-backed)');
+      if (kDebugMode) {
+        debugPrint('[Socket] 📡 Registered userId: $userId (Redis-backed)');
+      }
     });
 
     _socket!.onDisconnect((_) {
-      debugPrint('[Socket] 🔌 Disconnected');
+      if (kDebugMode) {
+        debugPrint('[Socket] 🔌 Disconnected');
+      }
       _isConnected = false;
       _connectionStateController.add(false);
     });
 
     _socket!.onReconnect((_) {
-      debugPrint('[Socket] 🔄 Reconnected');
+      if (kDebugMode) {
+        debugPrint('[Socket] 🔄 Reconnected');
+      }
       _reconnectAttempts = 0;
       // Re-register on reconnect so Redis mapping is refreshed
       _socket!.emit('register', {'userId': userId});
@@ -96,50 +102,60 @@ class SocketService {
 
     _socket!.onReconnectAttempt((attempt) {
       _reconnectAttempts = attempt is int ? attempt : 0;
-      debugPrint('[Socket] 🔄 Reconnect attempt: $_reconnectAttempts');
+      if (kDebugMode) {
+        debugPrint('[Socket] 🔄 Reconnect attempt: $_reconnectAttempts');
+      }
     });
 
     _socket!.onReconnectFailed((_) {
-      debugPrint('[Socket] ❌ Reconnection failed after $_maxReconnectAttempts attempts');
+      if (kDebugMode) {
+        debugPrint(
+          '[Socket] ❌ Reconnection failed after $_maxReconnectAttempts attempts',
+        );
+      }
     });
 
     _socket!.onConnectError((err) {
-      debugPrint('[Socket] ❌ Connect error: $err');
+      if (kDebugMode) {
+        debugPrint('[Socket] ❌ Connect error: $err');
+      }
       _isConnected = false;
       _connectionStateController.add(false);
     });
 
     _socket!.onError((err) {
-      debugPrint('[Socket] ❌ Socket error: $err');
+      if (kDebugMode) {
+        debugPrint('[Socket] ❌ Socket error: $err');
+      }
     });
 
     // ── Booking events (routed from Redis Pub/Sub → Socket.IO) ──
 
     // Instant booking request broadcast to candidate workers
     _socket!.on('new-booking-request', (data) {
-      debugPrint('[Socket] 🚨 new-booking-request: $data');
+      if (kDebugMode) debugPrint('[Socket] 🚨 new-booking-request: $data');
       _addToController(_newBookingRequestController, data);
     });
 
     // Another worker accepted the instant booking
     _socket!.on('booking-taken', (data) {
-      debugPrint('[Socket] 🔒 booking-taken: $data');
+      if (kDebugMode) debugPrint('[Socket] 🔒 booking-taken: $data');
       _addToController(_bookingTakenController, data);
     });
 
     // A new scheduled booking assigned to this worker
     _socket!.on('new-scheduled-booking', (data) {
-      debugPrint('[Socket] 📋 new-scheduled-booking: $data');
+      if (kDebugMode) debugPrint('[Socket] 📋 new-scheduled-booking: $data');
       _addToController(_newScheduledBookingController, data);
     });
 
     _socket!.on('chat-message', (data) {
-      debugPrint('[Socket] chat-message: $data');
+      if (kDebugMode) debugPrint('[Socket] chat-message: $data');
       _addToController(_chatMessageController, data);
     });
 
     _socket!.on('booking-paid', (data) {
-      debugPrint('[Socket] booking-paid: $data');
+      if (kDebugMode) debugPrint('[Socket] booking-paid: $data');
       _addToController(_bookingPaidController, data);
     });
 
@@ -151,24 +167,32 @@ class SocketService {
   /// Signal that the worker is en route to the customer
   void emitTrackingStart(String bookingId) {
     if (_socket == null || !_isConnected) {
-      debugPrint('[Socket] ⚠️ Cannot emit tracking-start: not connected');
+      if (kDebugMode) {
+        debugPrint('[Socket] ⚠️ Cannot emit tracking-start: not connected');
+      }
       return;
     }
     _socket!.emit('tracking-start', {'bookingId': bookingId});
-    debugPrint('[Socket] 📍 Emitted tracking-start for booking: $bookingId');
+    if (kDebugMode) {
+      debugPrint('[Socket] 📍 Emitted tracking-start for booking: $bookingId');
+    }
   }
 
   /// Send live GPS location update
   void emitLocationUpdate(String bookingId, List<double> coordinates) {
     if (_socket == null || !_isConnected) {
-      debugPrint('[Socket] ⚠️ Cannot emit location-update: not connected');
+      if (kDebugMode) {
+        debugPrint('[Socket] ⚠️ Cannot emit location-update: not connected');
+      }
       return;
     }
     _socket!.emit('location-update', {
       'bookingId': bookingId,
       'coordinates': coordinates,
     });
-    debugPrint('[Socket] 🗺️ Emitted location-update: $coordinates');
+    if (kDebugMode) {
+      debugPrint('[Socket] 🗺️ Emitted location-update: $coordinates');
+    }
   }
 
   /// Helper to safely add data to a stream controller
