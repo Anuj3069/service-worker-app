@@ -251,18 +251,56 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildStatCards() {
     return Consumer<BookingProvider>(
-      builder: (_, bp, __) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Row(
-          children: [
-            Expanded(child: _statCard('Pending', bp.pendingCount, AppTheme.warning, Icons.hourglass_top_rounded)),
-            const SizedBox(width: 12),
-            Expanded(child: _statCard('Active', bp.activeCount, AppTheme.accepted, Icons.play_circle_rounded)),
-            const SizedBox(width: 12),
-            Expanded(child: _statCard('Done', bp.completedCount, AppTheme.success, Icons.check_circle_rounded)),
-          ],
-        ),
-      ),
+      builder: (_, bp, __) {
+        final totalEarnings = bp.completedBookings.fold<double>(0.0, (sum, b) => sum + b.payout);
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(child: _statCard('Pending', bp.pendingCount, AppTheme.warning, Icons.hourglass_top_rounded)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _statCard('Active', bp.activeCount, AppTheme.accepted, Icons.play_circle_rounded)),
+                  const SizedBox(width: 12),
+                  Expanded(child: _statCard('Done', bp.completedCount, AppTheme.success, Icons.check_circle_rounded)),
+                ],
+              ),
+              const SizedBox(height: 14),
+              GlassCard(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.success.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.account_balance_wallet_rounded, color: AppTheme.success, size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Total Earnings',
+                          style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '₹${totalEarnings.toInt()}',
+                          style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w800, color: AppTheme.success),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -491,8 +529,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(children: [
             Icon(Icons.person_outline_rounded, size: 14, color: AppTheme.textMuted), const SizedBox(width: 6),
             Text(booking.customerName, style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondary)),
-            const SizedBox(width: 16),
-            Text('₹${booking.price.toInt()}', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.accent)),
+            const SizedBox(width: 14),
+            Text('Price: ₹${booking.price.toInt()}', style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textMuted)),
+            const SizedBox(width: 14),
+            Text('Earnings: ₹${booking.payout.toInt()}', style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.success)),
           ]),
           if (booking.status == 'completed') ...[
             const SizedBox(height: 10),

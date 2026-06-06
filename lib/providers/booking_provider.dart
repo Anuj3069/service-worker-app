@@ -189,6 +189,7 @@ class BookingProvider extends ChangeNotifier {
           'slot': booking.slot,
           'status': booking.status,
           'price': booking.price,
+          'payout': booking.payout,
           'acceptedAt': booking.acceptedAt,
           'completedAt': booking.completedAt,
           'rejectedAt': booking.rejectedAt,

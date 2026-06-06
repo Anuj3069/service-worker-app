@@ -7,6 +7,7 @@ class Booking {
   final String slot;
   final String status;
   final double price;
+  final double payout;
   final String? acceptedAt;
   final String? completedAt;
   final String? rejectedAt;
@@ -29,6 +30,7 @@ class Booking {
     required this.slot,
     required this.status,
     required this.price,
+    required this.payout,
     this.acceptedAt,
     this.completedAt,
     this.rejectedAt,
@@ -67,6 +69,7 @@ class Booking {
       slot: json['slot'] ?? '',
       status: json['status'] ?? 'pending',
       price: (json['price'] ?? 0).toDouble(),
+      payout: (json['payout'] ?? (json['price'] ?? 0) * 0.9).toDouble(),
       acceptedAt: json['acceptedAt'],
       completedAt: json['completedAt'],
       rejectedAt: json['rejectedAt'],
