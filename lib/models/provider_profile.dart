@@ -14,6 +14,41 @@ class AvailabilitySlot {
   Map<String, dynamic> toJson() => {'dayOfWeek': dayOfWeek, 'slots': slots};
 }
 
+/// Represents the KYC verification state for a provider.
+class KycInfo {
+  final String? documentType;
+  final String? documentUrl;
+  final String status; // not_submitted | pending | approved | rejected
+  final String? rejectionReason;
+  final String? submittedAt;
+  final String? reviewedAt;
+
+  KycInfo({
+    this.documentType,
+    this.documentUrl,
+    required this.status,
+    this.rejectionReason,
+    this.submittedAt,
+    this.reviewedAt,
+  });
+
+  factory KycInfo.fromJson(Map<String, dynamic> json) {
+    return KycInfo(
+      documentType: json['documentType'],
+      documentUrl: json['documentUrl'],
+      status: json['status'] ?? 'not_submitted',
+      rejectionReason: json['rejectionReason'],
+      submittedAt: json['submittedAt'],
+      reviewedAt: json['reviewedAt'],
+    );
+  }
+
+  bool get isApproved => status == 'approved';
+  bool get isPending => status == 'pending';
+  bool get isRejected => status == 'rejected';
+  bool get isNotSubmitted => status == 'not_submitted';
+}
+
 class ProviderProfile {
   final String id;
   final String userId;
@@ -25,6 +60,7 @@ class ProviderProfile {
   final int totalJobs;
   final bool isVerified;
   final bool isAvailable;
+  final KycInfo kyc;
 
   ProviderProfile({
     required this.id,
@@ -37,6 +73,7 @@ class ProviderProfile {
     required this.totalJobs,
     required this.isVerified,
     required this.isAvailable,
+    required this.kyc,
   });
 
   factory ProviderProfile.fromJson(Map<String, dynamic> json) {
@@ -54,6 +91,9 @@ class ProviderProfile {
       totalJobs: json['totalJobs'] ?? 0,
       isVerified: json['isVerified'] ?? false,
       isAvailable: json['isAvailable'] ?? true,
+      kyc: json['kyc'] != null
+          ? KycInfo.fromJson(json['kyc'])
+          : KycInfo(status: 'not_submitted'),
     );
   }
 }

@@ -198,7 +198,12 @@ class ApiClient {
 
     throw ApiException(message, response.statusCode);
   }
+
+  /// Public alias for use by multipart requests outside this class.
+  static Map<String, dynamic> parseResponse(http.Response response) =>
+      _handleResponse(response);
 }
+
 
 class ApiException implements Exception {
   final String message;

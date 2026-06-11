@@ -168,7 +168,8 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
 
     if (!mounted) return;
     if (success) {
-      Navigator.pushReplacementNamed(context, '/dashboard');
+      // After creating a profile, the worker must complete KYC before accessing dashboard.
+      Navigator.pushReplacementNamed(context, '/kyc-upload');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(provider.error ?? 'Failed to create profile'), backgroundColor: AppTheme.error));
     }

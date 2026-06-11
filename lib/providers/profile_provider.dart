@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../models/provider_profile.dart';
 import '../services/provider_api_service.dart';
@@ -13,6 +14,9 @@ class ProfileProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasProfile => _hasProfile;
+
+  /// Returns the KYC status string, or 'not_submitted' if no profile.
+  String get kycStatus => _profile?.kyc.status ?? 'not_submitted';
 
   Future<void> fetchProfile() async {
     _isLoading = true;
@@ -83,6 +87,27 @@ class ProfileProvider extends ChangeNotifier {
       return true;
     } catch (e) {
       _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Submits a KYC document for verification.
+  Future<bool> submitKyc({required File file, required String documentType}) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      _profile = await _providerApi.submitKyc(
+        file: file,
+        documentType: documentType,
+      );
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
       notifyListeners();
       return false;
     }

@@ -9,6 +9,7 @@ class ApiConfig {
 
   // Provider Profile
   static const String profile = '/worker/profile';
+  static const String kyc = '/worker/profile/kyc';
 
   // Worker Bookings
   static const String bookings = '/worker/bookings';

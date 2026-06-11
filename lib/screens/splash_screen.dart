@@ -43,16 +43,44 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
     final isLoggedIn = await ApiClient.isLoggedIn();
     if (!mounted) return;
+
     if (isLoggedIn) {
       final userData = await ApiClient.getUserData();
       if (!mounted) return;
+
+      // Connect socket for real-time updates
       if (userData != null) {
         final userId = userData['id'] ?? userData['_id'] ?? '';
         if (userId.isNotEmpty) {
           bookingProvider.connectSocket(userId);
         }
       }
-      Navigator.pushReplacementNamed(context, '/dashboard');
+
+      // Fetch profile and check KYC status to determine correct screen
+      try {
+        final response = await ApiClient.get('/worker/profile');
+        if (!mounted) return;
+        final profileData = response['data']?['provider'] ?? response['data'];
+        if (profileData != null) {
+          final kycStatus = profileData['kyc']?['status'] ?? 'not_submitted';
+          if (kycStatus == 'approved') {
+            Navigator.pushReplacementNamed(context, '/dashboard');
+          } else if (kycStatus == 'pending') {
+            Navigator.pushReplacementNamed(context, '/kyc-pending');
+          } else if (kycStatus == 'rejected') {
+            Navigator.pushReplacementNamed(context, '/kyc-rejected');
+          } else {
+            // not_submitted — go to KYC upload
+            Navigator.pushReplacementNamed(context, '/kyc-upload');
+          }
+          return;
+        }
+      } catch (_) {
+        // No profile yet — ask to create one
+      }
+
+      // Profile not found → create profile first
+      Navigator.pushReplacementNamed(context, '/create-profile');
     } else {
       Navigator.pushReplacementNamed(context, '/login');
     }

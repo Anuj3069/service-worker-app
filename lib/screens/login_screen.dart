@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/booking_provider.dart';
+import '../services/api_client.dart';
 import '../widgets/gradient_button.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -57,7 +58,30 @@ class _LoginScreenState extends State<LoginScreen>
       if (user != null) {
         bookingProvider.connectSocket(user.id);
       }
-      Navigator.pushReplacementNamed(context, '/dashboard');
+
+      // Fetch provider profile to determine which screen to navigate to based on KYC
+      try {
+        final response = await ApiClient.get('/worker/profile');
+        if (!mounted) return;
+        final profileData = response['data']?['provider'] ?? response['data'];
+        if (profileData != null) {
+          final kycStatus = profileData['kyc']?['status'] ?? 'not_submitted';
+          if (kycStatus == 'approved') {
+            Navigator.pushReplacementNamed(context, '/dashboard');
+          } else if (kycStatus == 'pending') {
+            Navigator.pushReplacementNamed(context, '/kyc-pending');
+          } else if (kycStatus == 'rejected') {
+            Navigator.pushReplacementNamed(context, '/kyc-rejected');
+          } else {
+            Navigator.pushReplacementNamed(context, '/kyc-upload');
+          }
+          return;
+        }
+      } catch (_) {
+        // No profile yet
+      }
+      // No profile → create one
+      Navigator.pushReplacementNamed(context, '/create-profile');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

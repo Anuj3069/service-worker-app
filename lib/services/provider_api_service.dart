@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/provider_profile.dart';
 import 'api_client.dart';
@@ -36,7 +38,8 @@ class ProviderApiService {
     return ProviderProfile.fromJson(data);
   }
 
-  Future<ProviderProfile> updateLocation(List<double> coordinates, {String? address}) async {
+  Future<ProviderProfile> updateLocation(List<double> coordinates,
+      {String? address}) async {
     final body = <String, dynamic>{
       'coordinates': coordinates,
     };
@@ -45,6 +48,36 @@ class ProviderApiService {
     }
     final response = await ApiClient.put('${ApiConfig.profile}/location', body);
     final data = response['data'];
+    if (data['provider'] != null) return ProviderProfile.fromJson(data['provider']);
+    return ProviderProfile.fromJson(data);
+  }
+
+  /// Uploads a KYC document (multipart/form-data) to [ApiConfig.kyc].
+  Future<ProviderProfile> submitKyc({
+    required File file,
+    required String documentType,
+  }) async {
+    final token = await ApiClient.getAccessToken();
+    final url = Uri.parse('${ApiConfig.baseUrl}${ApiConfig.kyc}');
+
+    final request = http.MultipartRequest('POST', url);
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+
+    request.fields['documentType'] = documentType;
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'document',
+        file.path,
+        filename: file.path.split(Platform.pathSeparator).last,
+      ),
+    );
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    final parsed = ApiClient.parseResponse(response);
+    final data = parsed['data'];
     if (data['provider'] != null) return ProviderProfile.fromJson(data['provider']);
     return ProviderProfile.fromJson(data);
   }

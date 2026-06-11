@@ -10,6 +10,9 @@ import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/create_profile_screen.dart';
+import 'screens/kyc_upload_screen.dart';
+import 'screens/kyc_pending_screen.dart';
+import 'screens/kyc_rejected_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/chat_screen.dart';
 
@@ -48,6 +51,9 @@ class AirveatWorkerApp extends StatelessWidget {
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
           '/create-profile': (context) => const CreateProfileScreen(),
+          '/kyc-upload': (context) => const KycUploadScreen(),
+          '/kyc-pending': (context) => const KycPendingScreen(),
+          '/kyc-rejected': (context) => const KycRejectedScreen(),
           '/dashboard': (context) => const DashboardScreen(),
           '/chat': (context) => const ChatScreen(),
         },
