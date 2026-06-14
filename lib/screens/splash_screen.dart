@@ -109,33 +109,33 @@ class _SplashScreenState extends State<SplashScreen>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        width: 100,
-                        height: 100,
+                        width: 78,
+                        height: 78,
                         decoration: BoxDecoration(
                           gradient: AppTheme.primaryGradient,
-                          borderRadius: BorderRadius.circular(28),
+                          borderRadius: BorderRadius.circular(18),
                           boxShadow: [
                             BoxShadow(
                               color: AppTheme.primary.withValues(alpha: 0.5),
-                              blurRadius: 40,
-                              spreadRadius: 5,
+                              blurRadius: 20,
+                              spreadRadius: 2,
                             ),
                           ],
                         ),
                         child: const Icon(
                           Icons.engineering_rounded,
                           color: Colors.white,
-                          size: 48,
+                          size: 36,
                         ),
                       ),
                       const SizedBox(height: 24),
                       Text(
                         'Airveat',
                         style: GoogleFonts.outfit(
-                          fontSize: 36,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 30,
+                          fontWeight: FontWeight.w800,
                           color: AppTheme.textPrimary,
-                          letterSpacing: 2,
+                          letterSpacing: 0,
                         ),
                       ),
                       const SizedBox(height: 8),

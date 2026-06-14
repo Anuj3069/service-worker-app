@@ -52,7 +52,8 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
       if (permission == LocationPermission.deniedForever) {
         setState(() {
           _isLoadingLocation = false;
-          _locationError = 'Location permission permanently denied. Enable it in settings.';
+          _locationError =
+              'Location permission permanently denied. Enable it in settings.';
         });
         return;
       }
@@ -68,7 +69,9 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
 
       // Get initial position quickly
       final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
       );
       if (mounted) {
         setState(() {
@@ -80,19 +83,20 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
       }
 
       // Subscribe to live updates
-      _positionSub = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 5, // update every 5 m moved
-        ),
-      ).listen((p) {
-        if (mounted) {
-          setState(() {
-            _workerPos = LatLng(p.latitude, p.longitude);
-            _updateDistance();
+      _positionSub =
+          Geolocator.getPositionStream(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 5, // update every 5 m moved
+            ),
+          ).listen((p) {
+            if (mounted) {
+              setState(() {
+                _workerPos = LatLng(p.latitude, p.longitude);
+                _updateDistance();
+              });
+            }
           });
-        }
-      });
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -109,8 +113,10 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     final cLng = widget.booking.customerLongitude;
     if (wPos == null || cLat == null || cLng == null) return;
     _distanceMetres = Geolocator.distanceBetween(
-      wPos.latitude, wPos.longitude,
-      cLat, cLng,
+      wPos.latitude,
+      wPos.longitude,
+      cLat,
+      cLng,
     );
   }
 
@@ -152,7 +158,9 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     }
     final label = Uri.encodeComponent(widget.booking.customerName);
     // Try Google Maps, fallback to geo URI
-    final googleUri = Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$cLat,$cLng');
+    final googleUri = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=$cLat,$cLng',
+    );
     final geoUri = Uri.parse('geo:$cLat,$cLng?q=$cLat,$cLng($label)');
 
     if (await canLaunchUrl(googleUri)) {
@@ -189,7 +197,8 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
     final customerLatLng = hasCustomerLocation ? LatLng(cLat, cLng) : null;
 
     // Centre map: worker pos > customer pos > default India centre
-    final initialCentre = _workerPos ?? customerLatLng ?? const LatLng(20.5937, 78.9629);
+    final initialCentre =
+        _workerPos ?? customerLatLng ?? const LatLng(20.5937, 78.9629);
 
     return Scaffold(
       body: Container(
@@ -205,8 +214,10 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                   children: [
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                          color: AppTheme.textPrimary),
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: AppTheme.textPrimary,
+                      ),
                     ),
                     Expanded(
                       child: Column(
@@ -234,12 +245,15 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                     if (_distanceMetres != null)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: AppTheme.accepted.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(10),
                           border: Border.all(
-                              color: AppTheme.accepted.withValues(alpha: 0.4)),
+                            color: AppTheme.accepted.withValues(alpha: 0.4),
+                          ),
                         ),
                         child: Text(
                           _formatDistance(_distanceMetres!),
@@ -260,8 +274,9 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
             // ── Map ──────────────────────────────────────────────────
             Expanded(
               child: ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
                 child: Stack(
                   children: [
                     if (_locationError != null)
@@ -272,14 +287,18 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.location_off_rounded,
-                                  color: AppTheme.error, size: 48),
+                              Icon(
+                                Icons.location_off_rounded,
+                                color: AppTheme.error,
+                                size: 48,
+                              ),
                               const SizedBox(height: 16),
                               Text(
                                 _locationError!,
                                 textAlign: TextAlign.center,
                                 style: GoogleFonts.inter(
-                                    color: AppTheme.textSecondary),
+                                  color: AppTheme.textSecondary,
+                                ),
                               ),
                             ],
                           ),
@@ -301,8 +320,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                           TileLayer(
                             urlTemplate:
                                 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName:
-                                'com.serviceapp.worker_app',
+                            userAgentPackageName: 'com.serviceapp.worker_app',
                           ),
 
                           // Straight-line route between worker & customer
@@ -314,7 +332,8 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                                   color: AppTheme.accepted,
                                   strokeWidth: 3,
                                   pattern: StrokePattern.dashed(
-                                      segments: [12, 6]),
+                                    segments: [12, 6],
+                                  ),
                                 ),
                               ],
                             ),
@@ -337,7 +356,8 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                                   width: 48,
                                   height: 58,
                                   child: _CustomerMarker(
-                                      name: widget.booking.customerName),
+                                    name: widget.booking.customerName,
+                                  ),
                                 ),
                             ],
                           ),
@@ -347,10 +367,11 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                     // Loading overlay
                     if (_isLoadingLocation)
                       Container(
-                        color: Colors.black38,
+                        color: Colors.black26,
                         child: const Center(
                           child: CircularProgressIndicator(
-                              color: AppTheme.primary),
+                            color: AppTheme.primary,
+                          ),
                         ),
                       ),
 
@@ -388,7 +409,11 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
             Container(
               color: AppTheme.bgCard,
               padding: EdgeInsets.fromLTRB(
-                  20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
+                20,
+                16,
+                20,
+                MediaQuery.of(context).padding.bottom + 16,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -396,8 +421,11 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                   if (widget.booking.customerAddress != null) ...[
                     Row(
                       children: [
-                        Icon(Icons.location_on_rounded,
-                            color: AppTheme.primary, size: 18),
+                        Icon(
+                          Icons.location_on_rounded,
+                          color: AppTheme.primary,
+                          size: 18,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -420,14 +448,12 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton.icon(
-                      onPressed: hasCustomerLocation
-                          ? _openExternalMaps
-                          : null,
+                      onPressed: hasCustomerLocation ? _openExternalMaps : null,
                       icon: const Icon(Icons.open_in_new_rounded, size: 20),
                       label: Text(
                         'Open in Google Maps',
                         style: GoogleFonts.outfit(
-                          fontSize: 16,
+                          fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -435,7 +461,7 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                         backgroundColor: AppTheme.primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         elevation: 0,
                       ),
@@ -448,7 +474,9 @@ class _MapTrackingScreenState extends State<MapTrackingScreen> {
                       'Customer location is not available for this booking.',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
-                          fontSize: 12, color: AppTheme.textMuted),
+                        fontSize: 12,
+                        color: AppTheme.textMuted,
+                      ),
                     ),
                   ],
                 ],
@@ -479,7 +507,11 @@ class _WorkerMarker extends StatelessWidget {
           ),
         ],
       ),
-      child: const Icon(Icons.engineering_rounded, color: Colors.white, size: 22),
+      child: const Icon(
+        Icons.engineering_rounded,
+        color: Colors.white,
+        size: 22,
+      ),
     );
   }
 }
@@ -530,7 +562,11 @@ class _CustomerMarker extends StatelessWidget {
               ),
             ],
           ),
-          child: const Icon(Icons.person_rounded, color: Colors.white, size: 18),
+          child: const Icon(
+            Icons.person_rounded,
+            color: Colors.white,
+            size: 18,
+          ),
         ),
       ],
     );

@@ -59,10 +59,10 @@ class _KycRejectedScreenState extends State<KycRejectedScreen>
 
                   // Rejected icon
                   Container(
-                    width: 120,
-                    height: 120,
+                    width: 92,
+                    height: 92,
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
+                      borderRadius: BorderRadius.circular(22),
                       color: AppTheme.error.withValues(alpha: 0.12),
                       border: Border.all(
                         color: AppTheme.error.withValues(alpha: 0.3),
@@ -71,26 +71,26 @@ class _KycRejectedScreenState extends State<KycRejectedScreen>
                       boxShadow: [
                         BoxShadow(
                           color: AppTheme.error.withValues(alpha: 0.25),
-                          blurRadius: 32,
-                          spreadRadius: 4,
+                          blurRadius: 20,
+                          spreadRadius: 2,
                         ),
                       ],
                     ),
                     child: const Icon(
                       Icons.gpp_bad_rounded,
                       color: AppTheme.error,
-                      size: 56,
+                      size: 42,
                     ),
                   ),
 
                   const SizedBox(height: 36),
 
                   Text(
-                    'Verification\nRejected',
+                    'Verification Rejected',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.outfit(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
                       color: AppTheme.textPrimary,
                       height: 1.15,
                     ),
@@ -115,7 +115,7 @@ class _KycRejectedScreenState extends State<KycRejectedScreen>
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         color: AppTheme.error.withValues(alpha: 0.07),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: AppTheme.error.withValues(alpha: 0.25),
                         ),
@@ -159,7 +159,7 @@ class _KycRejectedScreenState extends State<KycRejectedScreen>
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         color: AppTheme.surface,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: AppTheme.textMuted.withValues(alpha: 0.15),
                         ),
@@ -180,8 +180,11 @@ class _KycRejectedScreenState extends State<KycRejectedScreen>
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.surface.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(14),
+                      color: Colors.white.withValues(alpha: 0.86),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppTheme.textMuted.withValues(alpha: 0.12),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

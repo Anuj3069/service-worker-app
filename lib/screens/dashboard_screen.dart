@@ -45,7 +45,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _startLiveLocationUpdates() async {
     // Try to update location immediately
     await _updateWorkerLiveLocation();
-    
+
     // Set up a periodic timer to update every 30 seconds
     _locationTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) {
@@ -82,7 +82,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           position.longitude,
           position.latitude,
         ]);
-        debugPrint('[Live Location] Updated worker location on server: [${position.longitude}, ${position.latitude}]');
+        debugPrint(
+          '[Live Location] Updated worker location on server: [${position.longitude}, ${position.latitude}]',
+        );
       }
     } catch (e) {
       debugPrint('[Live Location] Error updating worker location: $e');
@@ -107,9 +109,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             SafeArea(
               bottom: false,
               child: Consumer<BookingProvider>(
-                builder: (_, bp, __) => ConnectionBanner(
-                  isConnected: bp.isSocketConnected,
-                ),
+                builder: (_, bp, __) =>
+                    ConnectionBanner(isConnected: bp.isSocketConnected),
               ),
             ),
             Expanded(
@@ -126,14 +127,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(color: AppTheme.bgCard, border: Border(top: BorderSide(color: AppTheme.primary.withValues(alpha: 0.2)))),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.94),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primary.withValues(alpha: 0.08),
+              blurRadius: 20,
+              offset: const Offset(0, -6),
+            ),
+          ],
+        ),
         child: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (i) => setState(() => _currentIndex = i),
           items: [
-            const BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded), label: 'Dashboard'),
-            const BottomNavigationBarItem(icon: Icon(Icons.work_rounded), label: 'Jobs'),
-            const BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.dashboard_rounded),
+              label: 'Dashboard',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.work_rounded),
+              label: 'Jobs',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.person_rounded),
+              label: 'Profile',
+            ),
           ],
         ),
       ),
@@ -147,7 +167,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onRefresh: () => context.read<BookingProvider>().fetchAllBookings(),
         color: AppTheme.primary,
         child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -158,8 +180,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _buildStatCards(),
               const SizedBox(height: 28),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text('Pending Requests', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  'Pending Requests',
+                  style: GoogleFonts.outfit(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
               ),
               const SizedBox(height: 14),
               _buildPendingList(),
@@ -174,72 +203,147 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildHeader() {
     return Consumer2<AuthProvider, BookingProvider>(
       builder: (_, auth, bp, __) => Padding(
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
         child: Row(
           children: [
             Container(
-              width: 48, height: 48,
-              decoration: BoxDecoration(gradient: AppTheme.primaryGradient, borderRadius: BorderRadius.circular(14)),
-              child: Center(child: Text((auth.user?.name ?? 'W')[0].toUpperCase(), style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white))),
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Center(
+                child: Text(
+                  (auth.user?.name ?? 'W')[0].toUpperCase(),
+                  style: GoogleFonts.outfit(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Welcome back,', style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textMuted)),
-                Text(auth.user?.name ?? 'Worker', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
-              ]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Welcome back,',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppTheme.textMuted,
+                    ),
+                  ),
+                  Text(
+                    auth.user?.name ?? 'Worker',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.outfit(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
             ),
             // Live indicator (Redis socket connection)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
               decoration: BoxDecoration(
-                color: (bp.isSocketConnected ? AppTheme.success : AppTheme.error).withValues(alpha: 0.15),
+                color:
+                    (bp.isSocketConnected ? AppTheme.success : AppTheme.error)
+                        .withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: (bp.isSocketConnected ? AppTheme.success : AppTheme.error).withValues(alpha: 0.4),
+                  color:
+                      (bp.isSocketConnected ? AppTheme.success : AppTheme.error)
+                          .withValues(alpha: 0.4),
                 ),
               ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Container(
-                  width: 8, height: 8,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: bp.isSocketConnected ? AppTheme.success : AppTheme.error,
-                    boxShadow: [
-                      BoxShadow(
-                        color: (bp.isSocketConnected ? AppTheme.success : AppTheme.error).withValues(alpha: 0.6),
-                        blurRadius: 6,
-                      ),
-                    ],
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: bp.isSocketConnected
+                          ? AppTheme.success
+                          : AppTheme.error,
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              (bp.isSocketConnected
+                                      ? AppTheme.success
+                                      : AppTheme.error)
+                                  .withValues(alpha: 0.6),
+                          blurRadius: 6,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  bp.isSocketConnected ? 'Live' : 'Offline',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: bp.isSocketConnected ? AppTheme.success : AppTheme.error,
+                  const SizedBox(width: 6),
+                  Text(
+                    bp.isSocketConnected ? 'Live' : 'Offline',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: bp.isSocketConnected
+                          ? AppTheme.success
+                          : AppTheme.error,
+                    ),
                   ),
-                ),
-              ]),
+                ],
+              ),
             ),
             const SizedBox(width: 8),
             Consumer<ProfileProvider>(
               builder: (_, profile, __) {
                 final isOnline = profile.profile?.isAvailable ?? false;
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: (isOnline ? AppTheme.success : AppTheme.textMuted).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: (isOnline ? AppTheme.success : AppTheme.textMuted).withValues(alpha: 0.4)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 6,
                   ),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: isOnline ? AppTheme.success : AppTheme.textMuted)),
-                    const SizedBox(width: 6),
-                    Text(isOnline ? 'Online' : 'Offline', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: isOnline ? AppTheme.success : AppTheme.textMuted)),
-                  ]),
+                  decoration: BoxDecoration(
+                    color: (isOnline ? AppTheme.success : AppTheme.textMuted)
+                        .withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: (isOnline ? AppTheme.success : AppTheme.textMuted)
+                          .withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isOnline
+                              ? AppTheme.success
+                              : AppTheme.textMuted,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        isOnline ? 'Online' : 'Offline',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isOnline
+                              ? AppTheme.success
+                              : AppTheme.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
                 );
               },
             ),
@@ -252,32 +356,64 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildStatCards() {
     return Consumer<BookingProvider>(
       builder: (_, bp, __) {
-        final totalEarnings = bp.completedBookings.fold<double>(0.0, (sum, b) => sum + b.payout);
+        final totalEarnings = bp.completedBookings.fold<double>(
+          0.0,
+          (sum, b) => sum + b.payout,
+        );
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             children: [
               Row(
                 children: [
-                  Expanded(child: _statCard('Pending', bp.pendingCount, AppTheme.warning, Icons.hourglass_top_rounded)),
+                  Expanded(
+                    child: _statCard(
+                      'Pending',
+                      bp.pendingCount,
+                      AppTheme.warning,
+                      Icons.hourglass_top_rounded,
+                    ),
+                  ),
                   const SizedBox(width: 12),
-                  Expanded(child: _statCard('Active', bp.activeCount, AppTheme.accepted, Icons.play_circle_rounded)),
+                  Expanded(
+                    child: _statCard(
+                      'Active',
+                      bp.activeCount,
+                      AppTheme.accepted,
+                      Icons.play_circle_rounded,
+                    ),
+                  ),
                   const SizedBox(width: 12),
-                  Expanded(child: _statCard('Done', bp.completedCount, AppTheme.success, Icons.check_circle_rounded)),
+                  Expanded(
+                    child: _statCard(
+                      'Done',
+                      bp.completedCount,
+                      AppTheme.success,
+                      Icons.check_circle_rounded,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 14),
               GlassCard(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      width: 40,
+                      height: 40,
                       decoration: BoxDecoration(
                         color: AppTheme.success.withValues(alpha: 0.15),
-                        shape: BoxShape.circle,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.account_balance_wallet_rounded, color: AppTheme.success, size: 22),
+                      child: const Icon(
+                        Icons.account_balance_wallet_rounded,
+                        color: AppTheme.success,
+                        size: 22,
+                      ),
                     ),
                     const SizedBox(width: 14),
                     Column(
@@ -285,12 +421,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       children: [
                         Text(
                           'Total Earnings',
-                          style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w500),
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: AppTheme.textMuted,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           '₹${totalEarnings.toInt()}',
-                          style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w800, color: AppTheme.success),
+                          style: GoogleFonts.outfit(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: AppTheme.success,
+                          ),
                         ),
                       ],
                     ),
@@ -313,26 +457,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
         return Column(
           children: bp.instantRequests.map((req) {
-            final serviceDetails = req['service'] is Map ? req['service'] : null;
-            final serviceName = serviceDetails != null ? serviceDetails['name'] : 'Instant Service Request';
+            final serviceDetails = req['service'] is Map
+                ? req['service']
+                : null;
+            final serviceName = serviceDetails != null
+                ? serviceDetails['name']
+                : 'Instant Service Request';
             final price = req['price'] ?? 0;
             final bookingId = req['bookingId']?.toString() ?? '';
             final expiresAt = req['expiresAt'];
 
             return Container(
               margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppTheme.primary, Color(0xFFE85D26)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
+                gradient: AppTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primary.withValues(alpha: 0.4),
-                    blurRadius: 20,
+                    color: AppTheme.primary.withValues(alpha: 0.22),
+                    blurRadius: 18,
                     offset: const Offset(0, 8),
                   ),
                 ],
@@ -346,9 +490,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.flash_on_rounded, color: Colors.white, size: 24),
+                        child: const Icon(
+                          Icons.flash_on_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -357,24 +505,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           children: [
                             Row(
                               children: [
-                                Text('INSTANT REQUEST', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white.withValues(alpha: 0.8), letterSpacing: 1)),
+                                Text(
+                                  'INSTANT REQUEST',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white.withValues(alpha: 0.82),
+                                  ),
+                                ),
                                 const SizedBox(width: 8),
                                 // Redis Pub/Sub badge
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: Text('LIVE', style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 1)),
+                                  child: Text(
+                                    'LIVE',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
-                            Text(serviceName, style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white)),
+                            Text(
+                              serviceName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.outfit(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      Text('₹${price is num ? price.toInt() : price}', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white)),
+                      Text(
+                        '₹${price is num ? price.toInt() : price}',
+                        style: GoogleFonts.outfit(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -386,12 +567,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => bp.rejectBooking(bookingId, isInstant: true),
+                          onPressed: () =>
+                              bp.rejectBooking(bookingId, isInstant: true),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
                             side: const BorderSide(color: Colors.white),
                             padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           child: const Text('Decline'),
                         ),
@@ -399,12 +583,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () => bp.acceptBooking(bookingId, isInstant: true),
+                          onPressed: () =>
+                              bp.acceptBooking(bookingId, isInstant: true),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: AppTheme.primary,
                             padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             elevation: 0,
                           ),
                           child: const Text('Accept Quick'),
@@ -425,7 +612,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildScheduledNotifications() {
     return Consumer<BookingProvider>(
       builder: (_, bp, __) {
-        final unread = bp.scheduledNotifications.where((n) => n['isRead'] != true).toList();
+        final unread = bp.scheduledNotifications
+            .where((n) => n['isRead'] != true)
+            .toList();
         if (unread.isEmpty) return const SizedBox.shrink();
 
         return Container(
@@ -441,12 +630,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               Row(
                 children: [
-                  Icon(Icons.notifications_active_rounded, color: AppTheme.accepted, size: 22),
+                  Icon(
+                    Icons.notifications_active_rounded,
+                    color: AppTheme.accepted,
+                    size: 22,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '${unread.length} new scheduled booking${unread.length > 1 ? 's' : ''}',
-                      style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+                      style: GoogleFonts.outfit(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimary,
+                      ),
                     ),
                   ),
                   TextButton(
@@ -456,14 +653,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       minimumSize: const Size(0, 32),
                     ),
-                    child: Text('Dismiss', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600)),
+                    child: Text(
+                      'Dismiss',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
                 'New bookings have been assigned to you. Check your pending requests.',
-                style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondary),
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppTheme.textSecondary,
+                ),
               ),
             ],
           ),
@@ -474,32 +680,90 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _statCard(String label, int count, Color color, IconData icon) {
     return GlassCard(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 10),
-          Text('$count', style: GoogleFonts.outfit(fontSize: 28, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
-          const SizedBox(height: 4),
-          Text(label, style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted)),
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '$count',
+            style: GoogleFonts.outfit(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textMuted,
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _jobMeta(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: AppTheme.textMuted),
+        const SizedBox(width: 5),
+        Text(
+          text,
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildPendingList() {
     return Consumer<BookingProvider>(
       builder: (_, bp, __) {
-        if (bp.isLoading) return const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator(color: AppTheme.primary)));
+        if (bp.isLoading) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(40),
+              child: CircularProgressIndicator(color: AppTheme.primary),
+            ),
+          );
+        }
         final pending = bp.pendingBookings;
         if (pending.isEmpty) {
           return Padding(
             padding: const EdgeInsets.all(40),
-            child: Center(child: Column(children: [
-              Icon(Icons.inbox_rounded, color: AppTheme.textMuted, size: 48),
-              const SizedBox(height: 12),
-              Text('No pending requests', style: GoogleFonts.inter(color: AppTheme.textMuted)),
-            ])),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.inbox_rounded,
+                    color: AppTheme.textMuted,
+                    size: 48,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No pending requests',
+                    style: GoogleFonts.inter(color: AppTheme.textMuted),
+                  ),
+                ],
+              ),
+            ),
           );
         }
         return ListView.builder(
@@ -521,28 +785,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(child: Text(booking.serviceName, style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textPrimary))),
+              Expanded(
+                child: Text(
+                  booking.serviceName,
+                  style: GoogleFonts.outfit(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              ),
               StatusBadge(status: booking.status),
             ],
           ),
           const SizedBox(height: 10),
-          Row(children: [
-            Icon(Icons.person_outline_rounded, size: 14, color: AppTheme.textMuted), const SizedBox(width: 6),
-            Text(booking.customerName, style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondary)),
-            const SizedBox(width: 14),
-            Text('Price: ₹${booking.price.toInt()}', style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textMuted)),
-            const SizedBox(width: 14),
-            Text('Earnings: ₹${booking.payout.toInt()}', style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.success)),
-          ]),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _jobMeta(Icons.person_outline_rounded, booking.customerName),
+              Text(
+                'Price: ₹${booking.price.toInt()}',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textMuted,
+                ),
+              ),
+              Text(
+                'Earnings: ₹${booking.payout.toInt()}',
+                style: GoogleFonts.outfit(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: AppTheme.success,
+                ),
+              ),
+            ],
+          ),
           if (booking.status == 'completed') ...[
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: (booking.paymentStatus == 'paid' ? AppTheme.success : AppTheme.warning).withValues(alpha: 0.1),
+                color:
+                    (booking.paymentStatus == 'paid'
+                            ? AppTheme.success
+                            : AppTheme.warning)
+                        .withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: (booking.paymentStatus == 'paid' ? AppTheme.success : AppTheme.warning).withValues(alpha: 0.3),
+                  color:
+                      (booking.paymentStatus == 'paid'
+                              ? AppTheme.success
+                              : AppTheme.warning)
+                          .withValues(alpha: 0.3),
                 ),
               ),
               child: Row(
@@ -586,40 +883,79 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ],
           const SizedBox(height: 6),
-          Row(children: [
-            Icon(Icons.calendar_today_rounded, size: 14, color: AppTheme.textMuted), const SizedBox(width: 6),
-            Text(booking.date.split('T')[0], style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondary)),
-            const SizedBox(width: 16),
-            Icon(Icons.access_time_rounded, size: 14, color: AppTheme.textMuted), const SizedBox(width: 6),
-            Text(booking.slot, style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondary)),
-          ]),
+          Row(
+            children: [
+              Icon(
+                Icons.calendar_today_rounded,
+                size: 14,
+                color: AppTheme.textMuted,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                booking.date.split('T')[0],
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Icon(
+                Icons.access_time_rounded,
+                size: 14,
+                color: AppTheme.textMuted,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                booking.slot,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ],
+          ),
           if (booking.status == 'pending') ...[
             const SizedBox(height: 16),
-            Row(children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => _handleAction(booking.id, 'reject'),
-                  icon: const Icon(Icons.close_rounded, size: 18),
-                  label: const Text('Reject'),
-                  style: OutlinedButton.styleFrom(foregroundColor: AppTheme.error, side: const BorderSide(color: AppTheme.error), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _handleAction(booking.id, 'reject'),
+                    icon: const Icon(Icons.close_rounded, size: 18),
+                    label: const Text('Reject'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.error,
+                      side: const BorderSide(color: AppTheme.error),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: () => _handleAction(booking.id, 'accept'),
-                  icon: const Icon(Icons.check_rounded, size: 18),
-                  label: const Text('Accept'),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.success, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _handleAction(booking.id, 'accept'),
+                    icon: const Icon(Icons.check_rounded, size: 18),
+                    label: const Text('Accept'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.success,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
           ],
           if (booking.status == 'accepted') ...[
             const SizedBox(height: 16),
             Consumer<BookingProvider>(
               builder: (_, bp, __) {
-                final isTrackingThis = bp.isEnRoute && bp.activeTrackingBookingId == booking.id;
+                final isTrackingThis =
+                    bp.isEnRoute && bp.activeTrackingBookingId == booking.id;
                 return Column(
                   children: [
                     // Live tracking badge
@@ -627,27 +963,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       Container(
                         width: double.infinity,
                         margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           color: AppTheme.success.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppTheme.success.withValues(alpha: 0.3)),
+                          border: Border.all(
+                            color: AppTheme.success.withValues(alpha: 0.3),
+                          ),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Container(
-                              width: 8, height: 8,
+                              width: 8,
+                              height: 8,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: AppTheme.success,
-                                boxShadow: [BoxShadow(color: AppTheme.success.withValues(alpha: 0.6), blurRadius: 6)],
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppTheme.success.withValues(
+                                      alpha: 0.6,
+                                    ),
+                                    blurRadius: 6,
+                                  ),
+                                ],
                               ),
                             ),
                             const SizedBox(width: 8),
                             Text(
                               'Live Tracking Active',
-                              style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.success),
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.success,
+                              ),
                             ),
                           ],
                         ),
@@ -660,7 +1013,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => MapTrackingScreen(booking: booking),
+                              builder: (_) =>
+                                  MapTrackingScreen(booking: booking),
                             ),
                           );
                         },
@@ -669,7 +1023,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppTheme.accepted,
                           side: const BorderSide(color: AppTheme.accepted),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                         ),
                       ),
@@ -690,52 +1046,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppTheme.primary,
                           side: const BorderSide(color: AppTheme.primary),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           padding: const EdgeInsets.symmetric(vertical: 10),
                         ),
                       ),
                     ),
                     const SizedBox(height: 10),
                     // Tracking + Complete buttons row
-                    Row(children: [
-                      Expanded(
-                        child: isTrackingThis
-                            ? OutlinedButton.icon(
-                                onPressed: () => bp.stopTracking(),
-                                icon: const Icon(Icons.stop_rounded, size: 18),
-                                label: const Text('Stop'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppTheme.warning,
-                                  side: const BorderSide(color: AppTheme.warning),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: isTrackingThis
+                              ? OutlinedButton.icon(
+                                  onPressed: () => bp.stopTracking(),
+                                  icon: const Icon(
+                                    Icons.stop_rounded,
+                                    size: 18,
+                                  ),
+                                  label: const Text('Stop'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppTheme.warning,
+                                    side: const BorderSide(
+                                      color: AppTheme.warning,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                )
+                              : ElevatedButton.icon(
+                                  onPressed: bp.isEnRoute
+                                      ? null // Another booking is being tracked
+                                      : () => bp.startTracking(booking.id),
+                                  icon: const Icon(
+                                    Icons.navigation_rounded,
+                                    size: 18,
+                                  ),
+                                  label: const Text('En Route'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.accepted,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
                                 ),
-                              )
-                            : ElevatedButton.icon(
-                                onPressed: bp.isEnRoute
-                                    ? null // Another booking is being tracked
-                                    : () => bp.startTracking(booking.id),
-                                icon: const Icon(Icons.navigation_rounded, size: 18),
-                                label: const Text('En Route'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.accepted,
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                              ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            if (isTrackingThis) bp.stopTracking();
-                            _handleAction(booking.id, 'complete');
-                          },
-                          icon: const Icon(Icons.task_alt_rounded, size: 18),
-                          label: const Text('Complete'),
-                          style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                         ),
-                      ),
-                    ]),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              if (isTrackingThis) bp.stopTracking();
+                              _handleAction(booking.id, 'complete');
+                            },
+                            icon: const Icon(Icons.task_alt_rounded, size: 18),
+                            label: const Text('Complete'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primary,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 );
               },
@@ -757,10 +1135,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (ctx) {
         return Container(
           margin: const EdgeInsets.all(16),
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(14),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.15),
@@ -775,7 +1153,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(
                 'Collect Payment',
                 style: GoogleFonts.outfit(
-                  fontSize: 22,
+                  fontSize: 18,
                   fontWeight: FontWeight.w800,
                   color: AppTheme.textPrimary,
                 ),
@@ -794,8 +1172,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppTheme.textMuted.withValues(alpha: 0.18)),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppTheme.textMuted.withValues(alpha: 0.18),
+                  ),
                 ),
                 child: QrImageView(
                   data: qrData,
@@ -808,7 +1188,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Text(
                 '₹${booking.price.toInt()}',
                 style: GoogleFonts.outfit(
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.w900,
                   color: AppTheme.primary,
                 ),
@@ -834,7 +1214,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     backgroundColor: AppTheme.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
@@ -855,14 +1235,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final bp = context.read<BookingProvider>();
     bool success = false;
     switch (action) {
-      case 'accept': success = await bp.acceptBooking(id); break;
-      case 'reject': success = await bp.rejectBooking(id); break;
+      case 'accept':
+        success = await bp.acceptBooking(id);
+        break;
+      case 'reject':
+        success = await bp.rejectBooking(id);
+        break;
     }
     if (!mounted) return;
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(bp.successMessage ?? 'Action completed'), backgroundColor: AppTheme.success));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(bp.successMessage ?? 'Action completed'),
+          backgroundColor: AppTheme.success,
+        ),
+      );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(bp.error ?? 'Action failed'), backgroundColor: AppTheme.error));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(bp.error ?? 'Action failed'),
+          backgroundColor: AppTheme.error,
+        ),
+      );
     }
   }
 
@@ -884,10 +1278,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               child: Container(
                 margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(28),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(28),
+                  borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.15),
@@ -901,20 +1295,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     // Header icon
                     Container(
-                      width: 64,
-                      height: 64,
+                      width: 52,
+                      height: 52,
                       decoration: BoxDecoration(
                         gradient: AppTheme.primaryGradient,
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(14),
                       ),
-                      child: const Icon(Icons.verified_user_rounded,
-                          color: Colors.white, size: 32),
+                      child: const Icon(
+                        Icons.verified_user_rounded,
+                        color: Colors.white,
+                        size: 26,
+                      ),
                     ),
                     const SizedBox(height: 20),
                     Text(
                       'Enter Completion OTP',
                       style: GoogleFonts.outfit(
-                        fontSize: 20,
+                        fontSize: 18,
                         fontWeight: FontWeight.w800,
                         color: AppTheme.textPrimary,
                       ),
@@ -938,7 +1335,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       maxLength: 4,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.jetBrainsMono(
-                        fontSize: 32,
+                        fontSize: 28,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 12,
                         color: AppTheme.textPrimary,
@@ -947,25 +1344,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         counterText: '',
                         hintText: '● ● ● ●',
                         hintStyle: GoogleFonts.inter(
-                          fontSize: 24,
+                          fontSize: 20,
                           color: AppTheme.textMuted.withValues(alpha: 0.4),
                           letterSpacing: 12,
                         ),
                         filled: true,
                         fillColor: AppTheme.textMuted.withValues(alpha: 0.06),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
                             color: AppTheme.primary.withValues(alpha: 0.5),
                             width: 2,
                           ),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 18),
+                          horizontal: 20,
+                          vertical: 18,
+                        ),
                       ),
                     ),
 
@@ -974,7 +1373,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
                         decoration: BoxDecoration(
                           color: AppTheme.error.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
@@ -984,8 +1385,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.error_outline_rounded,
-                                size: 16, color: AppTheme.error),
+                            Icon(
+                              Icons.error_outline_rounded,
+                              size: 16,
+                              color: AppTheme.error,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -1016,7 +1420,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 final otp = otpController.text.trim();
                                 if (otp.length != 4) {
                                   setDialogState(() {
-                                    dialogError = 'Please enter the 4-digit OTP';
+                                    dialogError =
+                                        'Please enter the 4-digit OTP';
                                   });
                                   return;
                                 }
@@ -1027,12 +1432,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                                 final bp = context.read<BookingProvider>();
                                 // Stop live tracking if active for this booking
-                                if (bp.isEnRoute && bp.activeTrackingBookingId == bookingId) {
+                                if (bp.isEnRoute &&
+                                    bp.activeTrackingBookingId == bookingId) {
                                   bp.stopTracking();
                                 }
                                 final nav = Navigator.of(ctx);
                                 final messenger = ScaffoldMessenger.of(context);
-                                final success = await bp.completeBooking(bookingId, otp);
+                                final success = await bp.completeBooking(
+                                  bookingId,
+                                  otp,
+                                );
 
                                 if (success) {
                                   Booking? completedBooking;
@@ -1045,18 +1454,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   nav.pop();
                                   messenger.showSnackBar(
                                     SnackBar(
-                                      content: Text(bp.successMessage ?? 'Job completed!'),
+                                      content: Text(
+                                        bp.successMessage ?? 'Job completed!',
+                                      ),
                                       backgroundColor: AppTheme.success,
                                     ),
                                   );
                                   final qrBooking = completedBooking;
                                   if (qrBooking != null && mounted) {
-                                    Future.microtask(() => _showPaymentQrDialog(qrBooking));
+                                    Future.microtask(
+                                      () => _showPaymentQrDialog(qrBooking),
+                                    );
                                   }
                                 } else {
                                   setDialogState(() {
                                     isVerifying = false;
-                                    dialogError = bp.error
+                                    dialogError =
+                                        bp.error
                                             ?.replaceAll('Exception: ', '')
                                             .replaceAll('Error: ', '') ??
                                         'Invalid OTP. Please try again.';
@@ -1066,10 +1480,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.success,
                           foregroundColor: Colors.white,
-                          disabledBackgroundColor: AppTheme.success.withValues(alpha: 0.5),
-                          disabledForegroundColor: Colors.white.withValues(alpha: 0.7),
+                          disabledBackgroundColor: AppTheme.success.withValues(
+                            alpha: 0.5,
+                          ),
+                          disabledForegroundColor: Colors.white.withValues(
+                            alpha: 0.7,
+                          ),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           elevation: 0,
                         ),
@@ -1085,7 +1503,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             : Text(
                                 'Verify & Complete Job',
                                 style: GoogleFonts.outfit(
-                                  fontSize: 16,
+                                  fontSize: 15,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -1122,13 +1540,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(24),
-            child: Text('All Jobs', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+            child: Text(
+              'All Jobs',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textPrimary,
+              ),
+            ),
           ),
           Expanded(
             child: Consumer<BookingProvider>(
               builder: (_, bp, __) {
-                if (bp.isLoading) return const Center(child: CircularProgressIndicator(color: AppTheme.primary));
-                if (bp.bookings.isEmpty) return Center(child: Text('No jobs yet', style: GoogleFonts.inter(color: AppTheme.textMuted)));
+                if (bp.isLoading) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: AppTheme.primary),
+                  );
+                }
+                if (bp.bookings.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'No jobs yet',
+                      style: GoogleFonts.inter(color: AppTheme.textMuted),
+                    ),
+                  );
+                }
                 return RefreshIndicator(
                   onRefresh: () => bp.fetchAllBookings(),
                   color: AppTheme.primary,
@@ -1158,35 +1594,100 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 const SizedBox(height: 40),
                 Container(
-                  width: 90, height: 90,
-                  decoration: BoxDecoration(gradient: AppTheme.primaryGradient, borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: AppTheme.primary.withValues(alpha: 0.4), blurRadius: 24)]),
-                  child: Center(child: Text((auth.user?.name ?? 'W')[0].toUpperCase(), style: GoogleFonts.outfit(fontSize: 36, fontWeight: FontWeight.w700, color: Colors.white))),
+                  width: 74,
+                  height: 74,
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.primaryGradient,
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primary.withValues(alpha: 0.4),
+                        blurRadius: 16,
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      (auth.user?.name ?? 'W')[0].toUpperCase(),
+                      style: GoogleFonts.outfit(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
-                Text(auth.user?.name ?? 'Worker', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
-                Text(auth.user?.email ?? '', style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textMuted)),
+                Text(
+                  auth.user?.name ?? 'Worker',
+                  style: GoogleFonts.outfit(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                Text(
+                  auth.user?.email ?? '',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: AppTheme.textMuted,
+                  ),
+                ),
                 const SizedBox(height: 24),
                 if (profile != null) ...[
-                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    _profileStat('⭐ ${profile.rating.toStringAsFixed(1)}', 'Rating'),
-                    const SizedBox(width: 32),
-                    _profileStat('${profile.totalJobs}', 'Jobs'),
-                    const SizedBox(width: 32),
-                    _profileStat(profile.isVerified ? '✓' : '✗', 'Verified'),
-                  ]),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _profileStat(
+                        '⭐ ${profile.rating.toStringAsFixed(1)}',
+                        'Rating',
+                      ),
+                      const SizedBox(width: 32),
+                      _profileStat('${profile.totalJobs}', 'Jobs'),
+                      const SizedBox(width: 32),
+                      _profileStat(profile.isVerified ? '✓' : '✗', 'Verified'),
+                    ],
+                  ),
                   const SizedBox(height: 24),
                   GlassCard(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Skills', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+                        Text(
+                          'Skills',
+                          style: GoogleFonts.outfit(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
                         const SizedBox(height: 10),
-                        Wrap(spacing: 8, runSpacing: 8, children: profile.skills.map((s) => Chip(
-                          label: Text(s, style: GoogleFonts.inter(fontSize: 12, color: AppTheme.accent)),
-                          backgroundColor: AppTheme.accent.withValues(alpha: 0.1),
-                          side: BorderSide(color: AppTheme.accent.withValues(alpha: 0.3)),
-                        )).toList()),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: profile.skills
+                              .map(
+                                (s) => Chip(
+                                  label: Text(
+                                    s,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      color: AppTheme.accent,
+                                    ),
+                                  ),
+                                  backgroundColor: AppTheme.accent.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  side: BorderSide(
+                                    color: AppTheme.accent.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
                       ],
                     ),
                   ),
@@ -1198,14 +1699,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     await auth.logout();
                     nav.pushReplacementNamed('/login');
                   },
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  child: Row(children: [
-                    const Icon(Icons.logout_rounded, color: AppTheme.error, size: 22),
-                    const SizedBox(width: 16),
-                    Text('Logout', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w500, color: AppTheme.error)),
-                    const Spacer(),
-                    const Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted, size: 20),
-                  ]),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.logout_rounded,
+                        color: AppTheme.error,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 16),
+                      Text(
+                        'Logout',
+                        style: GoogleFonts.inter(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: AppTheme.error,
+                        ),
+                      ),
+                      const Spacer(),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppTheme.textMuted,
+                        size: 20,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             );
@@ -1216,10 +1737,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _profileStat(String value, String label) {
-    return Column(children: [
-      Text(value, style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
-      Text(label, style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted)),
-    ]);
+    return Column(
+      children: [
+        Text(
+          value,
+          style: GoogleFonts.outfit(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted),
+        ),
+      ],
+    );
   }
 }
 
@@ -1271,7 +1804,8 @@ class _InstantCountdownState extends State<_InstantCountdown> {
   Widget build(BuildContext context) {
     final min = _secondsRemaining ~/ 60;
     final sec = _secondsRemaining % 60;
-    final formatted = '${min.toString().padLeft(2, '0')}:${sec.toString().padLeft(2, '0')}';
+    final formatted =
+        '${min.toString().padLeft(2, '0')}:${sec.toString().padLeft(2, '0')}';
     final isUrgent = _secondsRemaining < 60;
 
     return Container(
@@ -1285,14 +1819,14 @@ class _InstantCountdownState extends State<_InstantCountdown> {
         children: [
           Icon(
             Icons.timer_rounded,
-            color: isUrgent ? Colors.yellow : Colors.white.withValues(alpha: 0.9),
+            color: isUrgent
+                ? Colors.yellow
+                : Colors.white.withValues(alpha: 0.9),
             size: 18,
           ),
           const SizedBox(width: 6),
           Text(
-            _secondsRemaining > 0
-                ? 'Expires in $formatted'
-                : 'Expired',
+            _secondsRemaining > 0 ? 'Expires in $formatted' : 'Expired',
             style: GoogleFonts.inter(
               fontSize: 13,
               fontWeight: FontWeight.w700,

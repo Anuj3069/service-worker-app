@@ -87,15 +87,13 @@ class _KycPendingScreenState extends State<KycPendingScreen>
                   // Pulsing icon
                   AnimatedBuilder(
                     animation: _pulseAnim,
-                    builder: (context, child) => Transform.scale(
-                      scale: _pulseAnim.value,
-                      child: child,
-                    ),
+                    builder: (context, child) =>
+                        Transform.scale(scale: _pulseAnim.value, child: child),
                     child: Container(
-                      width: 120,
-                      height: 120,
+                      width: 92,
+                      height: 92,
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
+                        borderRadius: BorderRadius.circular(22),
                         gradient: const LinearGradient(
                           colors: [Color(0xFFFFAB40), Color(0xFFFF6D00)],
                           begin: Alignment.topLeft,
@@ -104,15 +102,15 @@ class _KycPendingScreenState extends State<KycPendingScreen>
                         boxShadow: [
                           BoxShadow(
                             color: AppTheme.warning.withValues(alpha: 0.45),
-                            blurRadius: 40,
-                            spreadRadius: 8,
+                            blurRadius: 24,
+                            spreadRadius: 2,
                           ),
                         ],
                       ),
                       child: const Icon(
                         Icons.hourglass_top_rounded,
                         color: Colors.white,
-                        size: 56,
+                        size: 42,
                       ),
                     ),
                   ),
@@ -120,11 +118,11 @@ class _KycPendingScreenState extends State<KycPendingScreen>
                   const SizedBox(height: 40),
 
                   Text(
-                    'Verification\nIn Progress',
+                    'Verification In Progress',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.outfit(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
                       color: AppTheme.textPrimary,
                       height: 1.15,
                     ),
@@ -140,7 +138,7 @@ class _KycPendingScreenState extends State<KycPendingScreen>
                     ),
                   ),
 
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 36),
 
                   // Steps
                   _InfoTile(
@@ -175,10 +173,10 @@ class _KycPendingScreenState extends State<KycPendingScreen>
                         onPressed: provider.isLoading ? null : _checkStatus,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.warning,
-                          foregroundColor: Colors.black87,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         icon: provider.isLoading
@@ -187,7 +185,7 @@ class _KycPendingScreenState extends State<KycPendingScreen>
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.black54,
+                                  color: Colors.white,
                                 ),
                               )
                             : const Icon(Icons.refresh_rounded),
@@ -195,7 +193,7 @@ class _KycPendingScreenState extends State<KycPendingScreen>
                           'Check Status',
                           style: GoogleFonts.inter(
                             fontWeight: FontWeight.w700,
-                            fontSize: 16,
+                            fontSize: 15,
                           ),
                         ),
                       ),
@@ -247,9 +245,9 @@ class _InfoTile extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: active
-            ? AppTheme.warning.withValues(alpha: 0.07)
-            : AppTheme.surface.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(14),
+            ? AppTheme.warning.withValues(alpha: 0.08)
+            : Colors.white.withValues(alpha: 0.86),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: active
               ? AppTheme.warning.withValues(alpha: 0.25)
@@ -295,7 +293,7 @@ class _InfoTile extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                 color: AppTheme.warning.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
                 'Pending',

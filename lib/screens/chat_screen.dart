@@ -58,24 +58,33 @@ class _ChatScreenState extends State<ChatScreen> {
       if (!mounted) return;
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not load chat: $e'), backgroundColor: AppTheme.error),
+        SnackBar(
+          content: Text('Could not load chat: $e'),
+          backgroundColor: AppTheme.error,
+        ),
       );
     }
   }
 
   void _listenForMessages() {
     _chatSub?.cancel();
-    _chatSub = context.read<BookingProvider>().socketService.onChatMessage.listen((data) {
-      if (data['bookingId']?.toString() != _booking?.id) return;
-      final rawMessage = data['message'];
-      if (rawMessage is! Map) return;
+    _chatSub = context
+        .read<BookingProvider>()
+        .socketService
+        .onChatMessage
+        .listen((data) {
+          if (data['bookingId']?.toString() != _booking?.id) return;
+          final rawMessage = data['message'];
+          if (rawMessage is! Map) return;
 
-      final message = ChatMessage.fromJson(Map<String, dynamic>.from(rawMessage));
-      if (_messages.any((m) => m.id == message.id)) return;
+          final message = ChatMessage.fromJson(
+            Map<String, dynamic>.from(rawMessage),
+          );
+          if (_messages.any((m) => m.id == message.id)) return;
 
-      setState(() => _messages.add(message));
-      _scrollToBottom();
-    });
+          setState(() => _messages.add(message));
+          _scrollToBottom();
+        });
   }
 
   Future<void> _send() async {
@@ -98,7 +107,10 @@ class _ChatScreenState extends State<ChatScreen> {
       setState(() => _sending = false);
       _messageController.text = text;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not send message: $e'), backgroundColor: AppTheme.error),
+        SnackBar(
+          content: Text('Could not send message: $e'),
+          backgroundColor: AppTheme.error,
+        ),
       );
     }
   }
@@ -132,12 +144,18 @@ class _ChatScreenState extends State<ChatScreen> {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.textPrimary),
+                      icon: const Icon(
+                        Icons.arrow_back_rounded,
+                        color: AppTheme.textPrimary,
+                      ),
                     ),
                     Expanded(
                       child: Column(
@@ -153,7 +171,10 @@ class _ChatScreenState extends State<ChatScreen> {
                           ),
                           Text(
                             booking?.serviceName ?? 'Booking chat',
-                            style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted),
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppTheme.textMuted,
+                            ),
                           ),
                         ],
                       ),
@@ -163,23 +184,27 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               Expanded(
                 child: _loading
-                    ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AppTheme.primary,
+                        ),
+                      )
                     : _messages.isEmpty
-                        ? Center(
-                            child: Text(
-                              'No messages yet',
-                              style: GoogleFonts.inter(color: AppTheme.textMuted),
-                            ),
-                          )
-                        : ListView.builder(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-                            itemCount: _messages.length,
-                            itemBuilder: (_, index) => _MessageBubble(
-                              message: _messages[index],
-                              isMine: _messages[index].senderId == _currentUserId,
-                            ),
-                          ),
+                    ? Center(
+                        child: Text(
+                          'No messages yet',
+                          style: GoogleFonts.inter(color: AppTheme.textMuted),
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                        itemCount: _messages.length,
+                        itemBuilder: (_, index) => _MessageBubble(
+                          message: _messages[index],
+                          isMine: _messages[index].senderId == _currentUserId,
+                        ),
+                      ),
               ),
               _Composer(
                 controller: _messageController,
@@ -205,17 +230,21 @@ class _MessageBubble extends StatelessWidget {
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.74),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.74,
+        ),
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           gradient: isMine ? AppTheme.primaryGradient : null,
           color: isMine ? null : AppTheme.bgCard.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(16).copyWith(
-            bottomRight: Radius.circular(isMine ? 4 : 16),
-            bottomLeft: Radius.circular(isMine ? 16 : 4),
+          borderRadius: BorderRadius.circular(12).copyWith(
+            bottomRight: Radius.circular(isMine ? 4 : 12),
+            bottomLeft: Radius.circular(isMine ? 12 : 4),
           ),
-          border: isMine ? null : Border.all(color: AppTheme.textMuted.withValues(alpha: 0.12)),
+          border: isMine
+              ? null
+              : Border.all(color: AppTheme.textMuted.withValues(alpha: 0.12)),
         ),
         child: Text(
           message.message,
@@ -244,10 +273,17 @@ class _Composer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.fromLTRB(16, 10, 16, 12 + MediaQuery.of(context).padding.bottom),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        10,
+        16,
+        12 + MediaQuery.of(context).padding.bottom,
+      ),
       decoration: BoxDecoration(
         color: AppTheme.bgCard,
-        border: Border(top: BorderSide(color: AppTheme.textMuted.withValues(alpha: 0.12))),
+        border: Border(
+          top: BorderSide(color: AppTheme.textMuted.withValues(alpha: 0.12)),
+        ),
       ),
       child: Row(
         children: [
@@ -258,17 +294,23 @@ class _Composer extends StatelessWidget {
               maxLines: 4,
               textInputAction: TextInputAction.send,
               onSubmitted: (_) => onSend(),
-              style: GoogleFonts.inter(color: AppTheme.textPrimary, fontSize: 14),
+              style: GoogleFonts.inter(
+                color: AppTheme.textPrimary,
+                fontSize: 14,
+              ),
               decoration: InputDecoration(
                 hintText: 'Message',
                 hintStyle: GoogleFonts.inter(color: AppTheme.textMuted),
                 filled: true,
-                fillColor: AppTheme.textMuted.withValues(alpha: 0.08),
+                fillColor: Colors.white,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
             ),
           ),
@@ -282,13 +324,18 @@ class _Composer extends StatelessWidget {
                 backgroundColor: AppTheme.primary,
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: sending
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Icon(Icons.send_rounded, size: 20),
             ),
