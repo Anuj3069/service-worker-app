@@ -27,6 +27,7 @@ class BookingProvider extends ChangeNotifier {
 
   StreamSubscription? _newRequestSub;
   StreamSubscription? _bookingTakenSub;
+  StreamSubscription? _bookingCancelledSub;
   StreamSubscription? _newScheduledSub;
   StreamSubscription? _bookingPaidSub;
   StreamSubscription? _connectionSub;
@@ -78,6 +79,7 @@ class BookingProvider extends ChangeNotifier {
   void disconnectSocket() {
     _newRequestSub?.cancel();
     _bookingTakenSub?.cancel();
+    _bookingCancelledSub?.cancel();
     _newScheduledSub?.cancel();
     _bookingPaidSub?.cancel();
     _connectionSub?.cancel();
@@ -91,6 +93,7 @@ class BookingProvider extends ChangeNotifier {
   void _listenToSocketEvents() {
     _newRequestSub?.cancel();
     _bookingTakenSub?.cancel();
+    _bookingCancelledSub?.cancel();
     _newScheduledSub?.cancel();
     _bookingPaidSub?.cancel();
     _connectionSub?.cancel();
@@ -143,6 +146,19 @@ class BookingProvider extends ChangeNotifier {
     });
 
     // ── New scheduled booking assigned to this worker ──
+    _bookingCancelledSub = _socketService.onBookingCancelled.listen((data) {
+      debugPrint('[Worker BookingProvider] booking-cancelled: $data');
+      final bookingId = data['bookingId']?.toString();
+      if (bookingId == null) return;
+
+      _instantRequests.removeWhere(
+        (r) => r['bookingId']?.toString() == bookingId,
+      );
+      _bookings = _bookings.where((b) => b.id != bookingId).toList();
+      fetchAllBookings();
+      notifyListeners();
+    });
+
     _newScheduledSub = _socketService.onNewScheduledBooking.listen((data) {
       debugPrint('[Worker BookingProvider] 📋 new-scheduled-booking: $data');
       final bookingId = data['bookingId']?.toString();
@@ -458,6 +474,7 @@ class BookingProvider extends ChangeNotifier {
   void dispose() {
     _newRequestSub?.cancel();
     _bookingTakenSub?.cancel();
+    _bookingCancelledSub?.cancel();
     _newScheduledSub?.cancel();
     _bookingPaidSub?.cancel();
     _connectionSub?.cancel();

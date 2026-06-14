@@ -8,11 +8,13 @@ import '../config/theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/booking_provider.dart';
 import '../providers/profile_provider.dart';
+import '../providers/settlement_provider.dart';
 import '../models/booking.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/connection_banner.dart';
 import 'map_tracking_screen.dart';
+import 'settlement_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -31,6 +33,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<BookingProvider>().fetchAllBookings();
       context.read<ProfileProvider>().fetchProfile();
+      context.read<SettlementProvider>().fetchBankDetails();
       _startLiveLocationUpdates();
     });
 
@@ -119,6 +122,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   _buildDashboardTab(),
                   _buildJobsTab(),
+                  const SettlementScreen(),
                   _buildProfileTab(),
                 ],
               ),
@@ -149,6 +153,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const BottomNavigationBarItem(
               icon: Icon(Icons.work_rounded),
               label: 'Jobs',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.account_balance_wallet_rounded),
+              label: 'Earnings',
             ),
             const BottomNavigationBarItem(
               icon: Icon(Icons.person_rounded),
@@ -1692,6 +1700,82 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                 ],
+                const SizedBox(height: 16),
+
+                // ── Bank Details Card ──
+                Consumer<SettlementProvider>(
+                  builder: (_, sp, __) {
+                    return GlassCard(
+                      onTap: () async {
+                        final result = await Navigator.pushNamed(
+                            context, '/bank-details');
+                        if (result == true) {
+                          sp.fetchBankDetails();
+                        }
+                      },
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: (sp.hasBankDetails
+                                      ? AppTheme.success
+                                      : AppTheme.warning)
+                                  .withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              sp.hasBankDetails
+                                  ? Icons.account_balance_rounded
+                                  : Icons.warning_amber_rounded,
+                              color: sp.hasBankDetails
+                                  ? AppTheme.success
+                                  : AppTheme.warning,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Bank Details',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  sp.hasBankDetails
+                                      ? '${sp.bankName} • ${sp.maskedAccountNumber}'
+                                      : '⚠️ Not added yet',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: sp.hasBankDetails
+                                        ? AppTheme.textSecondary
+                                        : AppTheme.warning,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: AppTheme.textMuted,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+
                 const SizedBox(height: 24),
                 GlassCard(
                   onTap: () async {

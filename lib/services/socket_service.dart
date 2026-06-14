@@ -25,6 +25,8 @@ class SocketService {
       StreamController<Map<String, dynamic>>.broadcast();
   final _bookingTakenController =
       StreamController<Map<String, dynamic>>.broadcast();
+  final _bookingCancelledController =
+      StreamController<Map<String, dynamic>>.broadcast();
   final _newScheduledBookingController =
       StreamController<Map<String, dynamic>>.broadcast();
   final _chatMessageController =
@@ -38,6 +40,8 @@ class SocketService {
       _newBookingRequestController.stream;
   Stream<Map<String, dynamic>> get onBookingTaken =>
       _bookingTakenController.stream;
+  Stream<Map<String, dynamic>> get onBookingCancelled =>
+      _bookingCancelledController.stream;
   Stream<Map<String, dynamic>> get onNewScheduledBooking =>
       _newScheduledBookingController.stream;
   Stream<Map<String, dynamic>> get onChatMessage =>
@@ -143,6 +147,11 @@ class SocketService {
       _addToController(_bookingTakenController, data);
     });
 
+    _socket!.on('booking-cancelled', (data) {
+      if (kDebugMode) debugPrint('[Socket] booking-cancelled: $data');
+      _addToController(_bookingCancelledController, data);
+    });
+
     // A new scheduled booking assigned to this worker
     _socket!.on('new-scheduled-booking', (data) {
       if (kDebugMode) debugPrint('[Socket] 📋 new-scheduled-booking: $data');
@@ -222,6 +231,7 @@ class SocketService {
     disconnect();
     _newBookingRequestController.close();
     _bookingTakenController.close();
+    _bookingCancelledController.close();
     _newScheduledBookingController.close();
     _chatMessageController.close();
     _bookingPaidController.close();

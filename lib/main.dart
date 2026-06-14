@@ -6,6 +6,7 @@ import 'config/theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/profile_provider.dart';
 import 'providers/booking_provider.dart';
+import 'providers/settlement_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -15,6 +16,9 @@ import 'screens/kyc_pending_screen.dart';
 import 'screens/kyc_rejected_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/chat_screen.dart';
+import 'screens/settlement_screen.dart';
+import 'screens/settlement_detail_screen.dart';
+import 'screens/bank_details_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -39,6 +43,7 @@ class AirveatWorkerApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => BookingProvider()),
+        ChangeNotifierProvider(create: (_) => SettlementProvider()),
       ],
       child: MaterialApp(
         title: 'Airveat Worker',
@@ -56,6 +61,9 @@ class AirveatWorkerApp extends StatelessWidget {
           '/kyc-rejected': (context) => const KycRejectedScreen(),
           '/dashboard': (context) => const DashboardScreen(),
           '/chat': (context) => const ChatScreen(),
+          '/settlements': (context) => const SettlementScreen(),
+          '/settlement-detail': (context) => const SettlementDetailScreen(),
+          '/bank-details': (context) => const BankDetailsScreen(),
         },
       ),
     );

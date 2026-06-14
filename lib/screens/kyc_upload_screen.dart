@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../providers/profile_provider.dart';
+import '../providers/settlement_provider.dart';
 import '../widgets/gradient_button.dart';
 
 class KycUploadScreen extends StatefulWidget {
@@ -30,6 +31,14 @@ class _KycUploadScreenState extends State<KycUploadScreen>
   File? _selectedFile;
   final ImagePicker _picker = ImagePicker();
 
+  // Bank details fields (optional)
+  bool _showBankSection = false;
+  final _bankHolderCtrl = TextEditingController();
+  final _bankAccountCtrl = TextEditingController();
+  final _bankIfscCtrl = TextEditingController();
+  final _bankNameCtrl = TextEditingController();
+  final _bankUpiCtrl = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -44,6 +53,11 @@ class _KycUploadScreenState extends State<KycUploadScreen>
   @override
   void dispose() {
     _animController.dispose();
+    _bankHolderCtrl.dispose();
+    _bankAccountCtrl.dispose();
+    _bankIfscCtrl.dispose();
+    _bankNameCtrl.dispose();
+    _bankUpiCtrl.dispose();
     super.dispose();
   }
 
@@ -135,6 +149,22 @@ class _KycUploadScreenState extends State<KycUploadScreen>
     }
 
     final profileProvider = context.read<ProfileProvider>();
+    final settlementProvider = context.read<SettlementProvider>();
+
+    // Save bank details first if filled
+    if (_bankAccountCtrl.text.trim().isNotEmpty) {
+      final bankData = {
+        'accountHolderName': _bankHolderCtrl.text.trim(),
+        'accountNumber': _bankAccountCtrl.text.trim(),
+        'ifscCode': _bankIfscCtrl.text.trim().toUpperCase(),
+        'bankName': _bankNameCtrl.text.trim(),
+      };
+      if (_bankUpiCtrl.text.trim().isNotEmpty) {
+        bankData['upiId'] = _bankUpiCtrl.text.trim();
+      }
+      await settlementProvider.saveBankDetails(bankData);
+    }
+
     final success = await profileProvider.submitKyc(
       file: _selectedFile!,
       documentType: _selectedDocType,
@@ -450,6 +480,118 @@ class _KycUploadScreenState extends State<KycUploadScreen>
                           ),
                         ),
 
+                        const SizedBox(height: 28),
+
+                        // ── Optional Bank Details Section ──
+                        GestureDetector(
+                          onTap: () => setState(() => _showBankSection = !_showBankSection),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: AppTheme.success.withValues(alpha: 0.06),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: AppTheme.success.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.success.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(
+                                    Icons.account_balance_rounded,
+                                    color: AppTheme.success,
+                                    size: 18,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Bank Details (Optional)',
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppTheme.textPrimary,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Add now or later from Profile',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 11,
+                                          color: AppTheme.textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                AnimatedRotation(
+                                  turns: _showBankSection ? 0.5 : 0,
+                                  duration: const Duration(milliseconds: 200),
+                                  child: const Icon(
+                                    Icons.keyboard_arrow_down_rounded,
+                                    color: AppTheme.textMuted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        AnimatedCrossFade(
+                          firstChild: const SizedBox.shrink(),
+                          secondChild: Padding(
+                            padding: const EdgeInsets.only(top: 16),
+                            child: Column(
+                              children: [
+                                _buildBankField(
+                                  controller: _bankHolderCtrl,
+                                  label: 'Account Holder Name',
+                                  hint: 'Full name as per bank',
+                                  icon: Icons.person_rounded,
+                                ),
+                                _buildBankField(
+                                  controller: _bankAccountCtrl,
+                                  label: 'Account Number',
+                                  hint: '9-18 digit account number',
+                                  icon: Icons.numbers_rounded,
+                                  keyboardType: TextInputType.number,
+                                ),
+                                _buildBankField(
+                                  controller: _bankIfscCtrl,
+                                  label: 'IFSC Code',
+                                  hint: 'e.g. HDFC0001234',
+                                  icon: Icons.code_rounded,
+                                  textCapitalization: TextCapitalization.characters,
+                                ),
+                                _buildBankField(
+                                  controller: _bankNameCtrl,
+                                  label: 'Bank Name',
+                                  hint: 'e.g. HDFC Bank',
+                                  icon: Icons.account_balance_rounded,
+                                ),
+                                _buildBankField(
+                                  controller: _bankUpiCtrl,
+                                  label: 'UPI ID (Optional)',
+                                  hint: 'e.g. name@upi',
+                                  icon: Icons.qr_code_rounded,
+                                ),
+                              ],
+                            ),
+                          ),
+                          crossFadeState: _showBankSection
+                              ? CrossFadeState.showSecond
+                              : CrossFadeState.showFirst,
+                          duration: const Duration(milliseconds: 300),
+                        ),
+
                         const SizedBox(height: 36),
 
                         Consumer<ProfileProvider>(
@@ -481,6 +623,68 @@ class _KycUploadScreenState extends State<KycUploadScreen>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildBankField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    TextInputType? keyboardType,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 14, color: AppTheme.success),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppTheme.textMuted.withValues(alpha: 0.2),
+              ),
+            ),
+            child: TextField(
+              controller: controller,
+              keyboardType: keyboardType,
+              textCapitalization: textCapitalization,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppTheme.textPrimary,
+              ),
+              decoration: InputDecoration(
+                hintText: hint,
+                hintStyle: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppTheme.textMuted,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 12),
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
