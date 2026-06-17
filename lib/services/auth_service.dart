@@ -33,4 +33,19 @@ class AuthService {
   }
 
   Future<void> logout() async => await ApiClient.clearAll();
+
+  Future<Map<String, dynamic>> forgotPassword({required String email}) async {
+    return await ApiClient.post(ApiConfig.forgotPassword, {'email': email}, auth: false);
+  }
+
+  Future<Map<String, dynamic>> resetPassword({
+    required String token,
+    required String password,
+  }) async {
+    return await ApiClient.post(
+      ApiConfig.resetPassword,
+      {'token': token, 'password': password},
+      auth: false,
+    );
+  }
 }

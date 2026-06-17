@@ -9,6 +9,7 @@ import 'providers/booking_provider.dart';
 import 'providers/settlement_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/forgot_password_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/create_profile_screen.dart';
 import 'screens/kyc_upload_screen.dart';
@@ -54,6 +55,7 @@ class AirveatWorkerApp extends StatelessWidget {
         routes: {
           '/': (context) => const SplashScreen(),
           '/login': (context) => const LoginScreen(),
+          '/forgot-password': (context) => const ForgotPasswordScreen(),
           '/register': (context) => const RegisterScreen(),
           '/create-profile': (context) => const CreateProfileScreen(),
           '/kyc-upload': (context) => const KycUploadScreen(),

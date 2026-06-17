@@ -209,7 +209,22 @@ class _LoginScreenState extends State<LoginScreen>
                                   ? 'Password is required'
                                   : null,
                             ),
-                            const SizedBox(height: 36),
+                            const SizedBox(height: 12),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: GestureDetector(
+                                onTap: () => Navigator.pushNamed(context, '/forgot-password'),
+                                child: Text(
+                                  'Forgot Password?',
+                                  style: GoogleFonts.inter(
+                                    color: AppTheme.primary,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
                             Consumer<AuthProvider>(
                               builder: (_, auth, __) => GradientButton(
                                 text: 'Sign In',
