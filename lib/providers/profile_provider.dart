@@ -9,11 +9,13 @@ class ProfileProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   bool _hasProfile = false;
+  bool _isTogglingAvailability = false;
 
   ProviderProfile? get profile => _profile;
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasProfile => _hasProfile;
+  bool get isTogglingAvailability => _isTogglingAvailability;
 
   /// Returns the KYC status string, or 'not_submitted' if no profile.
   String get kycStatus => _profile?.kyc.status ?? 'not_submitted';
@@ -78,6 +80,29 @@ class ProfileProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  Future<bool> toggleAvailability() async {
+    _isTogglingAvailability = true;
+    notifyListeners();
+    try {
+      final current = _profile?.isAvailable ?? false;
+      _profile = await _providerApi.updateProfile({'isAvailable': !current});
+      _isTogglingAvailability = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isTogglingAvailability = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<void> saveFcmToken(String token) async {
+    try {
+      await _providerApi.updateProfile({'fcmToken': token});
+    } catch (_) {}
   }
 
   Future<bool> updateLocation(List<double> coordinates, {String? address}) async {

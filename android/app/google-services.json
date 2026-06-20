@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "528507618279",
+    "project_id": "service-app-f705b",
+    "storage_bucket": "service-app-f705b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:528507618279:android:35106ae394ff9fa2303342",
+        "android_client_info": {
+          "package_name": "com.airveat.worker_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8L6jNueh7F1vm8BrTYa6MjmhFIFpO2X8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

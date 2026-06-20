@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../config/theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/booking_provider.dart';
@@ -35,6 +36,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context.read<ProfileProvider>().fetchProfile();
       context.read<SettlementProvider>().fetchBankDetails();
       _startLiveLocationUpdates();
+      _initFcm();
     });
 
     // Periodically clean up expired instant requests
@@ -92,6 +94,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } catch (e) {
       debugPrint('[Live Location] Error updating worker location: $e');
     }
+  }
+
+  Future<void> _initFcm() async {
+    final messaging = FirebaseMessaging.instance;
+
+    final settings = await messaging.requestPermission();
+    if (settings.authorizationStatus == AuthorizationStatus.denied) return;
+
+    final token = await messaging.getToken();
+    if (token != null && mounted) {
+      await context.read<ProfileProvider>().saveFcmToken(token);
+    }
+
+    messaging.onTokenRefresh.listen((newToken) {
+      if (mounted) context.read<ProfileProvider>().saveFcmToken(newToken);
+    });
+
+    // Show in-app banner for foreground notifications
+    FirebaseMessaging.onMessage.listen((message) {
+      if (!mounted) return;
+      final title = message.notification?.title ?? 'New Booking';
+      final body = message.notification?.body ?? '';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+              if (body.isNotEmpty) Text(body),
+            ],
+          ),
+          duration: const Duration(seconds: 5),
+          backgroundColor: const Color(0xFF1E293B),
+        ),
+      );
+    });
+
+    // Handle tap on notification when app is in background (not terminated)
+    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      if (!mounted) return;
+      setState(() => _currentIndex = 0);
+    });
   }
 
   @override
@@ -312,45 +357,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Consumer<ProfileProvider>(
               builder: (_, profile, __) {
                 final isOnline = profile.profile?.isAvailable ?? false;
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: (isOnline ? AppTheme.success : AppTheme.textMuted)
-                        .withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: (isOnline ? AppTheme.success : AppTheme.textMuted)
-                          .withValues(alpha: 0.4),
+                final isToggling = profile.isTogglingAvailability;
+                final color = isOnline ? AppTheme.success : AppTheme.textMuted;
+                return GestureDetector(
+                  onTap: isToggling ? null : () => profile.toggleAvailability(),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 6,
                     ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isOnline
-                              ? AppTheme.success
-                              : AppTheme.textMuted,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        isOnline ? 'Online' : 'Offline',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: isOnline
-                              ? AppTheme.success
-                              : AppTheme.textMuted,
-                        ),
-                      ),
-                    ],
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: color.withValues(alpha: 0.4)),
+                    ),
+                    child: isToggling
+                        ? SizedBox(
+                            width: 50,
+                            height: 16,
+                            child: Center(
+                              child: SizedBox(
+                                width: 12,
+                                height: 12,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: color,
+                                ),
+                              ),
+                            ),
+                          )
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: color,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                isOnline ? 'Online' : 'Offline',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: color,
+                                ),
+                              ),
+                            ],
+                          ),
                   ),
                 );
               },
