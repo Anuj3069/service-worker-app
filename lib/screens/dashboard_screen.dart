@@ -132,11 +132,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     });
 
-    // Handle tap on notification when app is in background (not terminated)
+    // Handle tap when app was terminated (cold start from notification)
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null && mounted) {
+      await _handleNotificationTap(initialMessage);
+    }
+
+    // Handle tap when app was in background
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
       if (!mounted) return;
-      setState(() => _currentIndex = 0);
+      _handleNotificationTap(message);
     });
+  }
+
+  Future<void> _handleNotificationTap(RemoteMessage message) async {
+    final bookingId = message.data['bookingId'];
+    final type = message.data['type'];
+    if (bookingId == null || type == null) return;
+
+    final bp = context.read<BookingProvider>();
+
+    if (type == 'new-booking-request') {
+      await bp.injectInstantRequestFromNotification(bookingId);
+    } else if (type == 'new-scheduled-booking') {
+      await bp.injectScheduledNotificationFromNotification(bookingId);
+    }
+
+    if (mounted) setState(() => _currentIndex = 0);
   }
 
   @override

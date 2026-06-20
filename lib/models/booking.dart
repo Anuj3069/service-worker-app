@@ -20,6 +20,13 @@ class Booking {
   /// [longitude, latitude] — GeoJSON order from backend
   final List<double>? customerCoordinates;
   final String? customerAddress;
+  final String bookingType; // BOOK_LATER, BOOK_INSTANT, BOOK_FOR_MONTH
+  final String? durationType; // HALF_DAY or FULL_DAY
+  final int? durationHours; // 9 or 16
+  final String? parentBookingId;
+  final int? bookingSequence;
+  final Map<String, dynamic>? monthContract; // startDate, endDate, totalDays, dailyPrice
+  final String? expiresAt;
 
   Booking({
     required this.id,
@@ -42,6 +49,13 @@ class Booking {
     this.userDetails,
     this.customerCoordinates,
     this.customerAddress,
+    this.bookingType = 'BOOK_LATER',
+    this.durationType,
+    this.durationHours,
+    this.parentBookingId,
+    this.bookingSequence,
+    this.monthContract,
+    this.expiresAt,
   });
 
   factory Booking.fromJson(Map<String, dynamic> json) {
@@ -81,8 +95,20 @@ class Booking {
       userDetails: json['userId'] is Map ? json['userId'] : null,
       customerCoordinates: coords,
       customerAddress: address,
+      bookingType: json['bookingType'] ?? 'BOOK_LATER',
+      durationType: json['durationType'],
+      durationHours: json['durationHours'] != null ? (json['durationHours'] as num).toInt() : null,
+      parentBookingId: json['parentBookingId'] is Map
+          ? json['parentBookingId']['_id']
+          : json['parentBookingId'],
+      bookingSequence: json['bookingSequence'] != null ? (json['bookingSequence'] as num).toInt() : null,
+      monthContract: json['monthContract'] is Map ? Map<String, dynamic>.from(json['monthContract']) : null,
+      expiresAt: json['expiresAt']?.toString(),
     );
   }
+
+  bool get isMonthBooking => bookingType == 'BOOK_FOR_MONTH';
+  bool get isMonthMaster => isMonthBooking && parentBookingId == null;
 
   String get serviceName => serviceDetails?['name'] ?? 'Service';
   String get customerName => userDetails?['name'] ?? 'Customer';

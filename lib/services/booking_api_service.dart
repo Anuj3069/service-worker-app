@@ -3,6 +3,12 @@ import '../models/booking.dart';
 import 'api_client.dart';
 
 class BookingApiService {
+  Future<Booking> getBookingById(String id) async {
+    final response = await ApiClient.get(ApiConfig.bookingById(id));
+    final data = response['data'];
+    return Booking.fromJson(data['booking']);
+  }
+
   Future<List<Booking>> getBookings({String? status}) async {
     String endpoint = ApiConfig.bookings;
     if (status != null && status.isNotEmpty) endpoint += '?status=$status';

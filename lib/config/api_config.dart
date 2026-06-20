@@ -18,6 +18,7 @@ class ApiConfig {
   static String acceptBooking(String id) => '/worker/bookings/$id/accept';
   static String rejectBooking(String id) => '/worker/bookings/$id/reject';
   static String completeBooking(String id) => '/worker/bookings/$id/complete';
+  static String bookingById(String id) => '/worker/bookings/$id';
   static String bookingChat(String id) => '/worker/bookings/$id/chat';
 
   // Bank Details

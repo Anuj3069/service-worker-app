@@ -30,7 +30,12 @@ class BookingProvider extends ChangeNotifier {
   StreamSubscription? _bookingCancelledSub;
   StreamSubscription? _newScheduledSub;
   StreamSubscription? _bookingPaidSub;
+  StreamSubscription? _newMonthBookingSub;
   StreamSubscription? _connectionSub;
+
+  List<Map<String, dynamic>> _monthBookingNotifications = [];
+  List<Map<String, dynamic>> get monthBookingNotifications => _monthBookingNotifications;
+  int get unreadMonthBookingCount => _monthBookingNotifications.where((n) => n['isRead'] != true).length;
 
   List<Booking> get bookings => _bookings;
   bool get isLoading => _isLoading;
@@ -69,6 +74,54 @@ class BookingProvider extends ChangeNotifier {
   int get unreadScheduledCount =>
       _scheduledNotifications.where((n) => n['isRead'] != true).length;
 
+  /// Called when worker taps an instant booking push notification.
+  /// Fetches the booking from API and injects it into instantRequests if still valid.
+  Future<void> injectInstantRequestFromNotification(String bookingId) async {
+    if (_instantRequests.any((r) => r['bookingId']?.toString() == bookingId)) return;
+    try {
+      final booking = await _bookingApi.getBookingById(bookingId);
+      if (booking.status != 'requested') return;
+      _instantRequests.add({
+        'bookingId': booking.id,
+        'service': booking.serviceDetails ?? {'name': booking.serviceName},
+        'price': booking.price,
+        'requestedAt': booking.createdAt,
+        'expiresAt': booking.expiresAt,
+        'receivedAt': DateTime.now().toIso8601String(),
+      });
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  /// Called when worker taps a scheduled booking push notification.
+  /// Fetches the booking from API and injects it into scheduledNotifications if still pending.
+  Future<void> injectScheduledNotificationFromNotification(String bookingId) async {
+    if (_scheduledNotifications.any(
+      (n) => n['data']?['bookingId']?.toString() == bookingId,
+    )) { return; }
+    try {
+      final booking = await _bookingApi.getBookingById(bookingId);
+      if (booking.status != 'pending') return;
+      _scheduledNotifications.insert(0, {
+        'type': 'new_scheduled',
+        'title': 'New Booking Request',
+        'message': 'You have a new scheduled booking request',
+        'data': {
+          'bookingId': booking.id,
+          'service': {'id': booking.serviceId, 'name': booking.serviceName},
+          'price': booking.price,
+          'date': booking.date,
+          'slot': booking.slot,
+          'status': booking.status,
+        },
+        'timestamp': DateTime.now().toIso8601String(),
+        'isRead': false,
+      });
+      fetchAllBookings();
+      notifyListeners();
+    } catch (_) {}
+  }
+
   /// Initialize socket connection after login
   void connectSocket(String userId) {
     _socketService.connect(userId);
@@ -82,11 +135,13 @@ class BookingProvider extends ChangeNotifier {
     _bookingCancelledSub?.cancel();
     _newScheduledSub?.cancel();
     _bookingPaidSub?.cancel();
+    _newMonthBookingSub?.cancel();
     _connectionSub?.cancel();
     _socketService.disconnect();
     _instantRequests.clear();
     _isSocketConnected = false;
     _scheduledNotifications.clear();
+    _monthBookingNotifications.clear();
     notifyListeners();
   }
 
@@ -96,6 +151,7 @@ class BookingProvider extends ChangeNotifier {
     _bookingCancelledSub?.cancel();
     _newScheduledSub?.cancel();
     _bookingPaidSub?.cancel();
+    _newMonthBookingSub?.cancel();
     _connectionSub?.cancel();
 
     // ── Connection state tracking ──
@@ -187,6 +243,31 @@ class BookingProvider extends ChangeNotifier {
       // Auto-refresh booking list to show the new booking
       fetchAllBookings();
       notifyListeners();
+    });
+
+    _newMonthBookingSub = _socketService.onNewMonthBooking.listen((data) {
+      debugPrint('[Worker BookingProvider] 📅 new-month-booking: $data');
+      final bookingId = data['bookingId']?.toString();
+      if (bookingId == null) return;
+
+      final alreadySeen = _monthBookingNotifications.any(
+        (n) => n['data']?['bookingId']?.toString() == bookingId,
+      );
+      if (!alreadySeen) {
+        _monthBookingNotifications.insert(0, {
+          'type': 'new_month_booking',
+          'title': 'New Monthly Booking',
+          'message': 'You have a new ${data['daysScheduled'] ?? ''}-day month contract request',
+          'data': data,
+          'timestamp': DateTime.now().toIso8601String(),
+          'isRead': false,
+        });
+        if (_monthBookingNotifications.length > 20) {
+          _monthBookingNotifications = _monthBookingNotifications.sublist(0, 20);
+        }
+        fetchAllBookings();
+        notifyListeners();
+      }
     });
 
     _bookingPaidSub = _socketService.onBookingPaid.listen((data) {
