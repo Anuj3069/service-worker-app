@@ -22,6 +22,7 @@ import 'screens/chat_screen.dart';
 import 'screens/settlement_screen.dart';
 import 'screens/settlement_detail_screen.dart';
 import 'screens/bank_details_screen.dart';
+import 'screens/support_chat_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -75,6 +76,7 @@ class AirveatWorkerApp extends StatelessWidget {
           '/settlements': (context) => const SettlementScreen(),
           '/settlement-detail': (context) => const SettlementDetailScreen(),
           '/bank-details': (context) => const BankDetailsScreen(),
+          '/support-chat': (context) => const SupportChatScreen(),
         },
       ),
     );

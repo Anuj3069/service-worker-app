@@ -968,6 +968,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
             ),
+            if (booking.paymentStatus != 'paid') ...[
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _confirmCashPayment(booking.id),
+                  icon: const Icon(Icons.payments_rounded, size: 18),
+                  label: const Text('Confirm Cash Received'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.success,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+            ],
           ],
           const SizedBox(height: 6),
           Row(
@@ -1035,6 +1054,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
               ],
+            ),
+          ],
+          if (['accepted', 'completed', 'cancelled'].contains(booking.status)) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/support-chat',
+                    arguments: {'bookingId': booking.id},
+                  );
+                },
+                icon: const Icon(Icons.support_agent_rounded, size: 18),
+                label: const Text('Contact Support'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF6C63FF),
+                  side: const BorderSide(color: Color(0xFF6C63FF)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+              ),
             ),
           ],
           if (booking.status == 'accepted') ...[
@@ -1310,6 +1354,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         );
       },
+    );
+  }
+
+  Future<void> _confirmCashPayment(String id) async {
+    final bp = context.read<BookingProvider>();
+    final success = await bp.confirmCashPayment(id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(success ? (bp.successMessage ?? 'Cash confirmed') : (bp.error ?? 'Failed to confirm cash')),
+        backgroundColor: success ? AppTheme.success : AppTheme.error,
+      ),
     );
   }
 

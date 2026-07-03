@@ -43,4 +43,11 @@ class BookingApiService {
     if (data['booking'] != null) return Booking.fromJson(data['booking']);
     return Booking.fromJson(data);
   }
+
+  Future<Booking> confirmCashPayment(String id) async {
+    final response = await ApiClient.post(ApiConfig.confirmCash(id), {});
+    final data = response['data'];
+    if (data['booking'] != null) return Booking.fromJson(data['booking']);
+    return Booking.fromJson(data);
+  }
 }

@@ -545,6 +545,25 @@ class BookingProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> confirmCashPayment(String id) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      await _bookingApi.confirmCashPayment(id);
+      _successMessage = 'Cash payment confirmed!';
+      await fetchAllBookings();
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   void clearMessages() {
     _error = null;
     _successMessage = null;
