@@ -150,12 +150,9 @@ class _LoginScreenState extends State<LoginScreen>
                           const SizedBox(height: 14),
                           _PhoneField(controller: _phoneController),
                           const SizedBox(height: 14),
-                          SizedBox(
-                            height: 52,
-                            child: GradientButton(
-                              text: 'Continue',
-                              onPressed: _handleContinueWithPhone,
-                            ),
+                          GradientButton(
+                            text: 'Continue',
+                            onPressed: _handleContinueWithPhone,
                           ),
                           const SizedBox(height: 18),
                           const _DividerLabel(),
@@ -217,14 +214,11 @@ class _LoginScreenState extends State<LoginScreen>
                                   ),
                                 ),
                                 const SizedBox(height: 16),
-                                SizedBox(
-                                  height: 52,
-                                  child: GradientButton(
-                                    text: 'Sign In',
-                                    isLoading: authProvider.isLoading,
-                                    onPressed: _handleLogin,
-                                    icon: Icons.arrow_forward_rounded,
-                                  ),
+                                GradientButton(
+                                  text: 'Sign In',
+                                  isLoading: authProvider.isLoading,
+                                  onPressed: _handleLogin,
+                                  icon: Icons.arrow_forward_rounded,
                                 ),
                               ],
                             ),
@@ -269,7 +263,13 @@ class _HeroSection extends StatelessWidget {
           end: Alignment.bottomCenter,
         ),
       ),
-      child: Column(
+      // Text scale is clamped here so a larger system font size can't push
+      // this fixed-height marketing banner into a RenderFlex overflow.
+      child: MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: const TextScaler.linear(1.0)),
+        child: Column(
         children: [
           SizedBox(height: topPadding + 16),
           Row(
@@ -331,6 +331,7 @@ class _HeroSection extends StatelessWidget {
           const _CarouselDots(),
           const SizedBox(height: 16),
         ],
+        ),
       ),
     );
   }

@@ -370,14 +370,10 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
       ),
       child: Column(
         children: [
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: GradientButton(
-              text: 'Accept Now',
-              isLoading: _isActing,
-              onPressed: () => _respond(true),
-            ),
+          GradientButton(
+            text: 'Accept Now',
+            isLoading: _isActing,
+            onPressed: () => _respond(true),
           ),
           const SizedBox(height: 8),
           TextButton(
