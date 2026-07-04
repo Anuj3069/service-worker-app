@@ -1,3 +1,4 @@
+import 'package:intl/intl.dart';
 import '../config/api_config.dart';
 import '../models/auth_response.dart';
 import 'api_client.dart';
@@ -8,6 +9,8 @@ class AuthService {
     required String email,
     required String password,
     String? phone,
+    String? gender,
+    DateTime? dateOfBirth,
   }) async {
     final body = <String, String>{
       'name': name,
@@ -16,6 +19,10 @@ class AuthService {
       'role': 'worker',
     };
     if (phone != null && phone.isNotEmpty) body['phone'] = phone;
+    if (gender != null && gender.isNotEmpty) body['gender'] = gender;
+    if (dateOfBirth != null) {
+      body['dateOfBirth'] = DateFormat('yyyy-MM-dd').format(dateOfBirth);
+    }
 
     final response = await ApiClient.post(ApiConfig.register, body, auth: false);
     final authResponse = AuthResponse.fromJson(response['data']);

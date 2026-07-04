@@ -37,13 +37,20 @@ class AuthProvider extends ChangeNotifier {
     required String email,
     required String password,
     String? phone,
+    String? gender,
+    DateTime? dateOfBirth,
   }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
     try {
       final AuthResponse result = await _authService.register(
-        name: name, email: email, password: password, phone: phone,
+        name: name,
+        email: email,
+        password: password,
+        phone: phone,
+        gender: gender,
+        dateOfBirth: dateOfBirth,
       );
       _user = result.user;
       _isAuthenticated = true;
