@@ -29,6 +29,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
 
   StreamSubscription? _messageSub;
   StreamSubscription? _statusSub;
+  StreamSubscription? _connectionSub;
 
   @override
   void didChangeDependencies() {
@@ -88,6 +89,24 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
         );
       });
     });
+
+    // Support rooms are re-joined automatically inside SocketService on
+    // reconnect, but re-fetch here too so any message sent during the
+    // disconnected window (background/network blip) shows up without the
+    // user manually reopening the screen.
+    _connectionSub?.cancel();
+    _connectionSub = socket.onConnectionStateChanged.listen((connected) {
+      if (connected && _ticket != null) _refetchTicket();
+    });
+  }
+
+  Future<void> _refetchTicket() async {
+    try {
+      final ticket = await _api.getTicket(_bookingId!);
+      if (!mounted) return;
+      setState(() => _ticket = ticket);
+      _scrollToBottom();
+    } catch (_) {}
   }
 
   Future<void> _createTicket(String issue) async {
@@ -157,6 +176,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
   void dispose() {
     _messageSub?.cancel();
     _statusSub?.cancel();
+    _connectionSub?.cancel();
     if (_ticket != null) {
       context.read<BookingProvider>().socketService.leaveSupportRoom(_ticket!.id);
     }

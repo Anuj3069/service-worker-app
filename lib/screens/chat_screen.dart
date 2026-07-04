@@ -25,6 +25,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final List<ChatMessage> _messages = [];
 
   StreamSubscription? _chatSub;
+  StreamSubscription? _connectionSub;
   Booking? _booking;
   String? _currentUserId;
   bool _loading = true;
@@ -68,23 +69,28 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _listenForMessages() {
     _chatSub?.cancel();
-    _chatSub = context
-        .read<BookingProvider>()
-        .socketService
-        .onChatMessage
-        .listen((data) {
-          if (data['bookingId']?.toString() != _booking?.id) return;
-          final rawMessage = data['message'];
-          if (rawMessage is! Map) return;
+    final socket = context.read<BookingProvider>().socketService;
+    _chatSub = socket.onChatMessage.listen((data) {
+      if (data['bookingId']?.toString() != _booking?.id) return;
+      final rawMessage = data['message'];
+      if (rawMessage is! Map) return;
 
-          final message = ChatMessage.fromJson(
-            Map<String, dynamic>.from(rawMessage),
-          );
-          if (_messages.any((m) => m.id == message.id)) return;
+      final message = ChatMessage.fromJson(
+        Map<String, dynamic>.from(rawMessage),
+      );
+      if (_messages.any((m) => m.id == message.id)) return;
 
-          setState(() => _messages.add(message));
-          _scrollToBottom();
-        });
+      setState(() => _messages.add(message));
+      _scrollToBottom();
+    });
+
+    // Any message sent while the socket was disconnected (app backgrounded,
+    // network blip) is never re-delivered — refetch on reconnect so it
+    // shows up without the user having to manually refresh.
+    _connectionSub?.cancel();
+    _connectionSub = socket.onConnectionStateChanged.listen((connected) {
+      if (connected) _load();
+    });
   }
 
   Future<void> _send() async {
@@ -129,6 +135,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     _chatSub?.cancel();
+    _connectionSub?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();

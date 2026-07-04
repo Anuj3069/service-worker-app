@@ -14,6 +14,7 @@ class SocketService {
   io.Socket? _socket;
   bool _isConnected = false;
   String? _userId;
+  String? _activeSupportTicketId;
   int _reconnectAttempts = 0;
   static const int _maxReconnectAttempts = 10;
 
@@ -96,6 +97,14 @@ class SocketService {
       _socket!.emit('register', {'userId': userId});
       if (kDebugMode) {
         debugPrint('[Socket] 📡 Registered userId: $userId (Redis-backed)');
+      }
+
+      // Room membership doesn't survive a reconnect (new socket.id on the
+      // server), so re-join any support ticket room the UI had joined —
+      // otherwise support-chat messages silently stop arriving until the
+      // screen is manually reopened.
+      if (_activeSupportTicketId != null) {
+        _socket!.emit('join-support', {'ticketId': _activeSupportTicketId});
       }
     });
 
@@ -245,10 +254,12 @@ class SocketService {
   }
 
   void joinSupportRoom(String ticketId) {
+    _activeSupportTicketId = ticketId;
     _socket?.emit('join-support', {'ticketId': ticketId});
   }
 
   void leaveSupportRoom(String ticketId) {
+    if (_activeSupportTicketId == ticketId) _activeSupportTicketId = null;
     _socket?.emit('leave-support', {'ticketId': ticketId});
   }
 
