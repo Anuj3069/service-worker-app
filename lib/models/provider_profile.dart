@@ -52,6 +52,9 @@ class KycInfo {
 class ProviderProfile {
   final String id;
   final String userId;
+  final String? userName;
+  final String? userEmail;
+  final String? userPhone;
   final List<String> skills;
   final String? address;
   final List<AvailabilitySlot> availability;
@@ -65,6 +68,9 @@ class ProviderProfile {
   ProviderProfile({
     required this.id,
     required this.userId,
+    this.userName,
+    this.userEmail,
+    this.userPhone,
     required this.skills,
     this.address,
     required this.availability,
@@ -77,9 +83,15 @@ class ProviderProfile {
   });
 
   factory ProviderProfile.fromJson(Map<String, dynamic> json) {
+    final rawUserId = json['userId'];
+    final userIsMap = rawUserId is Map;
+
     return ProviderProfile(
       id: json['_id'] ?? json['id'] ?? '',
-      userId: json['userId'] is Map ? json['userId']['_id'] ?? '' : json['userId'] ?? '',
+      userId: userIsMap ? rawUserId['_id'] ?? '' : rawUserId ?? '',
+      userName: userIsMap ? rawUserId['name'] : null,
+      userEmail: userIsMap ? rawUserId['email'] : null,
+      userPhone: userIsMap ? rawUserId['phone'] : null,
       skills: List<String>.from(json['skills'] ?? []),
       address: json['location']?['address'],
       availability: (json['availability'] as List?)

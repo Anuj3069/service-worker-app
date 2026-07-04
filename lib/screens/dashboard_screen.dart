@@ -10,10 +10,12 @@ import '../providers/auth_provider.dart';
 import '../providers/booking_provider.dart';
 import '../providers/profile_provider.dart';
 import '../providers/settlement_provider.dart';
+import '../providers/wallet_provider.dart';
 import '../models/booking.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/connection_banner.dart';
+import 'job_request_screen.dart';
 import 'map_tracking_screen.dart';
 import 'settlement_screen.dart';
 
@@ -35,6 +37,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context.read<BookingProvider>().fetchAllBookings();
       context.read<ProfileProvider>().fetchProfile();
       context.read<SettlementProvider>().fetchBankDetails();
+      context.read<WalletProvider>().fetchWallet();
       _startLiveLocationUpdates();
       _initFcm();
     });
@@ -866,6 +869,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildBookingCard(Booking booking) {
     return GlassCard(
+      onTap: booking.status == 'pending'
+          ? () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => JobRequestScreen(booking: booking),
+              ),
+            )
+          : null,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1021,37 +1032,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
           if (booking.status == 'pending') ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _handleAction(booking.id, 'reject'),
-                    icon: const Icon(Icons.close_rounded, size: 18),
-                    label: const Text('Reject'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.error,
-                      side: const BorderSide(color: AppTheme.error),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
+                Text(
+                  'Tap to view & respond',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.primary,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _handleAction(booking.id, 'accept'),
-                    icon: const Icon(Icons.check_rounded, size: 18),
-                    label: const Text('Accept'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.success,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppTheme.primary,
+                  size: 18,
                 ),
               ],
             ),
@@ -1729,113 +1725,231 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return SafeArea(
       top: false,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Consumer2<AuthProvider, ProfileProvider>(
-          builder: (_, auth, profProvider, __) {
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+        child: Consumer3<AuthProvider, ProfileProvider, WalletProvider>(
+          builder: (_, auth, profProvider, walletProvider, __) {
             final profile = profProvider.profile;
+            final displayName = profile?.userName ?? auth.user?.name ?? 'Worker';
+            final displayPhone = profile?.userPhone;
+            final displaySubtitle = (displayPhone != null && displayPhone.isNotEmpty)
+                ? displayPhone
+                : (profile?.userEmail ?? auth.user?.email ?? '');
             return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 40),
-                Container(
-                  width: 74,
-                  height: 74,
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.primary.withValues(alpha: 0.4),
-                        blurRadius: 16,
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      (auth.user?.name ?? 'W')[0].toUpperCase(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'My Profile',
                       style: GoogleFonts.outfit(
-                        fontSize: 30,
+                        fontSize: 24,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                        color: AppTheme.primary,
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  auth.user?.name ?? 'Worker',
-                  style: GoogleFonts.outfit(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                Text(
-                  auth.user?.email ?? '',
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: AppTheme.textMuted,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                if (profile != null) ...[
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _profileStat(
-                        '⭐ ${profile.rating.toStringAsFixed(1)}',
-                        'Rating',
+                    OutlinedButton.icon(
+                      onPressed: () => _showHelpSheet(),
+                      icon: const Icon(Icons.help_outline_rounded, size: 18),
+                      label: Text(
+                        'Help',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w700),
                       ),
-                      const SizedBox(width: 32),
-                      _profileStat('${profile.totalJobs}', 'Jobs'),
-                      const SizedBox(width: 32),
-                      _profileStat(profile.isVerified ? '✓' : '✗', 'Verified'),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  GlassCard(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Skills',
-                          style: GoogleFonts.outfit(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.textPrimary,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primary,
+                        side: BorderSide(
+                          color: AppTheme.primary.withValues(alpha: 0.4),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+
+                // ── Avatar + Name + Phone + Edit ──
+                GlassCard(
+                  padding: const EdgeInsets.all(18),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 62,
+                        height: 62,
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.primaryGradient,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primary.withValues(alpha: 0.4),
+                              blurRadius: 14,
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            displayName.isNotEmpty
+                                ? displayName[0].toUpperCase()
+                                : 'W',
+                            style: GoogleFonts.outfit(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: profile.skills
-                              .map(
-                                (s) => Chip(
-                                  label: Text(
-                                    s,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              displayName,
+                              style: GoogleFonts.outfit(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              displaySubtitle,
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.primary,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            GestureDetector(
+                              onTap: () =>
+                                  _showComingSoon('Editing your profile'),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.edit_outlined,
+                                    size: 14,
+                                    color: AppTheme.textMuted,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Edit Profile',
                                     style: GoogleFonts.inter(
                                       fontSize: 12,
-                                      color: AppTheme.accent,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.textMuted,
                                     ),
                                   ),
-                                  backgroundColor: AppTheme.accent.withValues(
-                                    alpha: 0.1,
-                                  ),
-                                  side: BorderSide(
-                                    color: AppTheme.accent.withValues(
-                                      alpha: 0.3,
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                if (profile != null) ...[
+                  const SizedBox(height: 12),
+                  GlassCard(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _profileStat(
+                          '⭐ ${profile.rating.toStringAsFixed(1)}',
+                          'Rating',
+                        ),
+                        _profileStat('${profile.totalJobs}', 'Jobs'),
+                        _profileStat(
+                          profile.isVerified ? '✓' : '✗',
+                          'Verified',
                         ),
                       ],
                     ),
                   ),
                 ],
+
                 const SizedBox(height: 16),
+
+                // ── Wallet Card ──
+                Consumer<BookingProvider>(
+                  builder: (_, bp, __) {
+                    final totalEarnings = bp.completedBookings.fold<double>(
+                      0.0,
+                      (sum, b) => sum + b.payout,
+                    );
+                    return GlassCard(
+                      onTap: () =>
+                          Navigator.pushNamed(context, '/settlements'),
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.account_balance_wallet_rounded,
+                              color: AppTheme.primary,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Wallet',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                                Text(
+                                  'Total Earn Amount',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: AppTheme.textMuted,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '₹${totalEarnings.toStringAsFixed(2)}',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppTheme.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: AppTheme.textMuted,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 12),
 
                 // ── Bank Details Card ──
                 Consumer<SettlementProvider>(
@@ -1911,7 +2025,138 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   },
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
+                _profileListTile(
+                  icon: Icons.support_agent_rounded,
+                  iconColor: AppTheme.primary,
+                  title: 'Customer Care',
+                  subtitle: 'Help & Support',
+                  onTap: () => _showHelpSheet(),
+                ),
+                const SizedBox(height: 12),
+                _profileListTile(
+                  icon: Icons.notifications_none_rounded,
+                  iconColor: AppTheme.primary,
+                  title: 'My Notifications',
+                  onTap: () => _showComingSoon('Notifications'),
+                ),
+                const SizedBox(height: 12),
+                _profileListTile(
+                  icon: Icons.card_giftcard_rounded,
+                  iconColor: AppTheme.accent,
+                  title: 'Refer & Earn',
+                  subtitle: 'upto ₹5,00,000',
+                  onTap: () => _showComingSoon('Refer & Earn'),
+                ),
+
+                const SizedBox(height: 20),
+
+                // ── Important Tips ──
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.warning.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppTheme.warning.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.lightbulb_outline_rounded,
+                            color: AppTheme.warning,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Important Tips',
+                            style: GoogleFonts.outfit(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      if (walletProvider.pendingCommissionOwed > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            'Outstanding commission: ₹${walletProvider.pendingCommissionOwed.toStringAsFixed(2)}',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.error,
+                            ),
+                          ),
+                        ),
+                      _tipLine('1.', 'Commission is used to run Airveat.'),
+                      _tipSubLine('Pay on time to keep receiving jobs.'),
+                      _tipSubLine(
+                        'Outstanding commission may block new jobs.',
+                      ),
+                      const SizedBox(height: 6),
+                      _tipLine(
+                        '2.',
+                        "If commission not paid or due is more than ₹500, you won't receive jobs or may be ID termination.",
+                      ),
+                    ],
+                  ),
+                ),
+
+                if (profile != null) ...[
+                  const SizedBox(height: 16),
+                  GlassCard(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Skills',
+                          style: GoogleFonts.outfit(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: profile.skills
+                              .map(
+                                (s) => Chip(
+                                  label: Text(
+                                    s,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      color: AppTheme.accent,
+                                    ),
+                                  ),
+                                  backgroundColor: AppTheme.accent.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  side: BorderSide(
+                                    color: AppTheme.accent.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 20),
                 GlassCard(
                   onTap: () async {
                     final nav = Navigator.of(context);
@@ -1950,6 +2195,165 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _profileListTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    String? subtitle,
+    required VoidCallback onTap,
+  }) {
+    return GlassCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: iconColor, size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppTheme.textMuted,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: AppTheme.textMuted,
+            size: 20,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tipLine(String number, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$number ',
+            style: GoogleFonts.inter(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.inter(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tipSubLine(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 18, bottom: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '• ',
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: AppTheme.textMuted,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AppTheme.textMuted,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showComingSoon(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$feature is coming soon.'),
+        backgroundColor: AppTheme.textPrimary,
+      ),
+    );
+  }
+
+  void _showHelpSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Customer Care',
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'For issues with a specific job, open that booking and use "Get Support" to chat with our team. '
+              'For anything else, reach us at support@airveat.com.',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: AppTheme.textSecondary,
+                height: 1.4,
+              ),
+            ),
+          ],
         ),
       ),
     );

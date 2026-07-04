@@ -9,6 +9,7 @@ import 'providers/auth_provider.dart';
 import 'providers/profile_provider.dart';
 import 'providers/booking_provider.dart';
 import 'providers/settlement_provider.dart';
+import 'providers/wallet_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/forgot_password_screen.dart';
@@ -55,6 +56,7 @@ class AirveatWorkerApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => BookingProvider()),
         ChangeNotifierProvider(create: (_) => SettlementProvider()),
+        ChangeNotifierProvider(create: (_) => WalletProvider()),
       ],
       child: MaterialApp(
         title: 'Airveat Worker',

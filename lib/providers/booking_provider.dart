@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import '../main.dart';
 import '../models/booking.dart';
+import '../screens/job_request_screen.dart';
 import '../services/booking_api_service.dart';
 import '../services/socket_service.dart';
 
@@ -19,6 +21,9 @@ class BookingProvider extends ChangeNotifier {
 
   // ── Instant Booking State ──────────────────────────
   final List<Map<String, dynamic>> _instantRequests = [];
+
+  // Scheduled-booking request screens currently on-screen (avoids duplicate pushes)
+  final Set<String> _presentedJobRequestIds = {};
 
   // ── Real-time notification state ───────────────────
   bool _isSocketConnected = false;
@@ -119,7 +124,35 @@ class BookingProvider extends ChangeNotifier {
       });
       fetchAllBookings();
       notifyListeners();
+      _presentJobRequestScreen(booking);
     } catch (_) {}
+  }
+
+  /// Pushes the full-screen job-request prompt (like an incoming-call
+  /// screen) over whatever the worker is currently doing. Guards against
+  /// showing the same booking twice if events fire more than once.
+  void _presentJobRequestScreen(
+    Booking booking, {
+    bool isInstant = false,
+    String? expiresAt,
+  }) {
+    if (_presentedJobRequestIds.contains(booking.id)) return;
+    final nav = navigatorKey.currentState;
+    if (nav == null) return;
+
+    _presentedJobRequestIds.add(booking.id);
+    nav
+        .push(
+          MaterialPageRoute(
+            fullscreenDialog: true,
+            builder: (_) => JobRequestScreen(
+              booking: booking,
+              isInstant: isInstant,
+              expiresAt: expiresAt,
+            ),
+          ),
+        )
+        .whenComplete(() => _presentedJobRequestIds.remove(booking.id));
   }
 
   /// Initialize socket connection after login
@@ -180,13 +213,25 @@ class BookingProvider extends ChangeNotifier {
       );
       if (!exists) {
         // Add expiry countdown data
-        final expiresAt = data['expiresAt'];
+        final expiresAt = data['expiresAt']?.toString();
         _instantRequests.add({
           ...data,
           'receivedAt': DateTime.now().toIso8601String(),
           'expiresAt': expiresAt,
         });
         notifyListeners();
+
+        if (bookingId != null) {
+          _bookingApi.getBookingById(bookingId).then((booking) {
+            if (booking.status == 'requested') {
+              _presentJobRequestScreen(
+                booking,
+                isInstant: true,
+                expiresAt: expiresAt,
+              );
+            }
+          }).catchError((_) {});
+        }
       }
     });
 
@@ -243,6 +288,11 @@ class BookingProvider extends ChangeNotifier {
       // Auto-refresh booking list to show the new booking
       fetchAllBookings();
       notifyListeners();
+
+      // Fetch full booking details and present the job-request screen
+      _bookingApi.getBookingById(bookingId).then((booking) {
+        if (booking.status == 'pending') _presentJobRequestScreen(booking);
+      }).catchError((_) {});
     });
 
     _newMonthBookingSub = _socketService.onNewMonthBooking.listen((data) {

@@ -37,4 +37,7 @@ class ApiConfig {
   static const String settlementRequest = '/worker/settlement/request';
   static const String settlements = '/worker/settlement';
   static String settlementDetail(String id) => '/worker/settlement/$id';
+
+  // Wallet (cash-commission ledger)
+  static const String wallet = '/worker/wallet';
 }
