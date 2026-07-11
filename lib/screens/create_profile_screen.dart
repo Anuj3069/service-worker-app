@@ -30,27 +30,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
     'touch-up',
   ];
   final Set<String> _selectedSkills = {};
-  final List<String> _days = [
-    'monday',
-    'tuesday',
-    'wednesday',
-    'thursday',
-    'friday',
-    'saturday',
-    'sunday',
-  ];
-  final Set<String> _selectedDays = {};
-  final List<String> _timeSlots = [
-    '09:00-10:00',
-    '10:00-11:00',
-    '11:00-12:00',
-    '12:00-13:00',
-    '14:00-15:00',
-    '15:00-16:00',
-    '16:00-17:00',
-    '17:00-18:00',
-  ];
-  final Set<String> _selectedSlots = {};
 
   @override
   void dispose() {
@@ -163,104 +142,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                       ),
                       const SizedBox(height: 28),
 
-                      _sectionTitle('Available Days'),
-                      const SizedBox(height: 14),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _days.map((day) {
-                          final selected = _selectedDays.contains(day);
-                          return GestureDetector(
-                            onTap: () => setState(
-                              () => selected
-                                  ? _selectedDays.remove(day)
-                                  : _selectedDays.add(day),
-                            ),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 13,
-                                vertical: 9,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: selected
-                                    ? AppTheme.primaryGradient
-                                    : null,
-                                color: selected ? null : Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                border: selected
-                                    ? null
-                                    : Border.all(
-                                        color: AppTheme.textMuted.withValues(
-                                          alpha: 0.16,
-                                        ),
-                                      ),
-                              ),
-                              child: Text(
-                                day[0].toUpperCase() + day.substring(1, 3),
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: selected
-                                      ? Colors.white
-                                      : AppTheme.textSecondary,
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 28),
-
-                      _sectionTitle('Time Slots'),
-                      const SizedBox(height: 14),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _timeSlots.map((slot) {
-                          final selected = _selectedSlots.contains(slot);
-                          return GestureDetector(
-                            onTap: () => setState(
-                              () => selected
-                                  ? _selectedSlots.remove(slot)
-                                  : _selectedSlots.add(slot),
-                            ),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 13,
-                                vertical: 9,
-                              ),
-                              decoration: BoxDecoration(
-                                gradient: selected
-                                    ? AppTheme.primaryGradient
-                                    : null,
-                                color: selected ? null : Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                                border: selected
-                                    ? null
-                                    : Border.all(
-                                        color: AppTheme.textMuted.withValues(
-                                          alpha: 0.16,
-                                        ),
-                                      ),
-                              ),
-                              child: Text(
-                                slot,
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: selected
-                                      ? Colors.white
-                                      : AppTheme.textSecondary,
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 28),
-
                       _sectionTitle('Location'),
                       const SizedBox(height: 14),
                       TextFormField(
@@ -281,10 +162,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                           text: 'Create Profile',
                           icon: Icons.check_circle_rounded,
                           isLoading: provider.isLoading,
-                          onPressed:
-                              (_selectedSkills.isNotEmpty &&
-                                  _selectedDays.isNotEmpty &&
-                                  _selectedSlots.isNotEmpty)
+                          onPressed: _selectedSkills.isNotEmpty
                               ? _handleCreate
                               : null,
                         ),
@@ -302,14 +180,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   }
 
   Future<void> _handleCreate() async {
-    final availability = _selectedDays
-        .map((day) => {'dayOfWeek': day, 'slots': _selectedSlots.toList()})
-        .toList();
-
     final provider = context.read<ProfileProvider>();
     final success = await provider.createProfile(
       skills: _selectedSkills.toList(),
-      availability: availability,
+      availability: const [],
       address: _addressCtrl.text.trim().isNotEmpty
           ? _addressCtrl.text.trim()
           : null,

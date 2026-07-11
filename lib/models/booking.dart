@@ -110,6 +110,24 @@ class Booking {
   bool get isMonthBooking => bookingType == 'BOOK_FOR_MONTH';
   bool get isMonthMaster => isMonthBooking && parentBookingId == null;
 
+  /// Whether the worker can start "En Route" tracking for this booking yet.
+  bool get canGoEnRoute {
+    if (date.isEmpty) return true;
+    try {
+      final bookingDate = DateTime.parse(date);
+      if (bookingType == 'BOOK_FOR_MONTH') {
+        final dayStart = DateTime(bookingDate.year, bookingDate.month, bookingDate.day);
+        return !DateTime.now().isBefore(dayStart);
+      }
+      if (bookingType == 'BOOK_LATER') {
+        return !DateTime.now().isBefore(bookingDate.subtract(const Duration(hours: 1)));
+      }
+      return true;
+    } catch (_) {
+      return true;
+    }
+  }
+
   String get serviceName => serviceDetails?['name'] ?? 'Service';
   String get customerName => userDetails?['name'] ?? 'Customer';
   String get customerEmail => userDetails?['email'] ?? '';

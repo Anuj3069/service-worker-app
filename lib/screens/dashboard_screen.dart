@@ -1204,8 +1204,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   ),
                                 )
                               : ElevatedButton.icon(
-                                  onPressed: bp.isEnRoute
-                                      ? null // Another booking is being tracked
+                                  onPressed: (bp.isEnRoute || !booking.canGoEnRoute)
+                                      ? null // Another booking is being tracked, or too early
                                       : () => bp.startTracking(booking.id),
                                   icon: const Icon(
                                     Icons.navigation_rounded,
