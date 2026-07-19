@@ -129,6 +129,10 @@ class Booking {
   }
 
   String get serviceName => serviceDetails?['name'] ?? 'Service';
+  List<String> get serviceDos =>
+      (serviceDetails?['dos'] as List?)?.map((e) => e.toString()).toList() ?? [];
+  List<String> get serviceDonts =>
+      (serviceDetails?['donts'] as List?)?.map((e) => e.toString()).toList() ?? [];
   String get customerName => userDetails?['name'] ?? 'Customer';
   String get customerEmail => userDetails?['email'] ?? '';
 

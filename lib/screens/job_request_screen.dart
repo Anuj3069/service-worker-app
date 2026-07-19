@@ -289,6 +289,11 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
                     valueColor: AppTheme.primary,
                     valueWeight: FontWeight.w800,
                   ),
+                  if (booking.serviceDos.isNotEmpty ||
+                      booking.serviceDonts.isNotEmpty) ...[
+                    const SizedBox(height: 14),
+                    _buildDosDontsSection(booking),
+                  ],
                 ],
               ),
             ),
@@ -353,6 +358,98 @@ class _JobRequestScreenState extends State<JobRequestScreen> {
               fontSize: 14,
               fontWeight: valueWeight,
               color: valueColor ?? AppTheme.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDosDontsSection(Booking booking) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (booking.serviceDos.isNotEmpty)
+          Expanded(
+            child: _rulesCard(
+              title: "DO'S",
+              items: booking.serviceDos,
+              icon: Icons.check_circle_rounded,
+              itemIcon: Icons.check_rounded,
+              color: AppTheme.success,
+              backgroundColor: const Color(0xFFEFFAF3),
+            ),
+          ),
+        if (booking.serviceDos.isNotEmpty && booking.serviceDonts.isNotEmpty)
+          const SizedBox(width: 12),
+        if (booking.serviceDonts.isNotEmpty)
+          Expanded(
+            child: _rulesCard(
+              title: "DON'TS",
+              items: booking.serviceDonts,
+              icon: Icons.cancel_rounded,
+              itemIcon: Icons.close_rounded,
+              color: AppTheme.error,
+              backgroundColor: const Color(0xFFFDF1F1),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _rulesCard({
+    required String title,
+    required List<String> items,
+    required IconData icon,
+    required IconData itemIcon,
+    required Color color,
+    required Color backgroundColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.15)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ...items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(itemIcon, color: color, size: 12),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      item,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: AppTheme.textSecondary,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
